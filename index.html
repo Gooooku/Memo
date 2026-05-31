@@ -637,7 +637,11 @@
         <button onclick="document.getElementById('memo-pdf-input').click()" title="Importer relevé MEMO PDF et envoyer aux familles" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--red)">
           <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span>
         </button>
+        <button onclick="document.getElementById('csv-eleves-input').click()" title="Importer liste d'élèves (CSV depuis Google Sheets)" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#16A34A">
+          <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg></span>
+        </button>
         <input type="file" id="memo-pdf-input" accept="application/pdf" style="display:none" onchange="importerMemoPDF(this)">
+        <input type="file" id="csv-eleves-input" accept=".csv,text/csv" style="display:none" onchange="importerCSVEleves(this)">
         <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(this)">
       </div>
     </div>
@@ -920,6 +924,23 @@
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-memo')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT CSV ÉLÈVES -->
+<div class="modal-overlay" id="modal-csv-eleves">
+  <div class="modal" style="max-width:680px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h3><span class="ico" style="color:#16A34A"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg></span> Import liste d'élèves</h3>
+      <button class="modal-close" onclick="closeModal('modal-csv-eleves')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body" id="csv-body" style="flex:1;overflow-y:auto">
+      <div id="csv-content"></div>
+    </div>
+    <div class="modal-footer" id="csv-footer">
+      <button class="btn" onclick="closeModal('modal-csv-eleves')">Annuler</button>
+      <button class="btn btn-primary" id="csv-btn-importer" onclick="validerImportCSV()" style="display:none"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Tout importer</button>
     </div>
   </div>
 </div>
@@ -2236,6 +2257,216 @@ async function genererPDFPourEleve(pages) {
     doc.addImage(imgData, 'JPEG', 0, 0, viewport.width, viewport.height);
   }
   return doc.output('blob');
+}
+
+/* ========== IMPORT CSV ÉLÈVES ========== */
+let csvImportData = null; // {eleves: [{nom, prenom, classe}], nouvellesClasses: []}
+
+function importerCSVEleves(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let text = e.target.result;
+      // Retirer BOM éventuel
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      analyserCSV(text);
+    } catch(err) {
+      document.getElementById('csv-content').innerHTML =
+        `<div style="color:var(--red);padding:20px">Erreur de lecture du CSV : ${err.message}</div>`;
+      document.getElementById('modal-csv-eleves').classList.add('open');
+    }
+  };
+  reader.onerror = () => {
+    alert('Impossible de lire le fichier.');
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function analyserCSV(text) {
+  // Détecter le séparateur (virgule ou point-virgule)
+  const firstLine = text.split(/\r?\n/).find(l => l.trim()) || '';
+  const sep = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ';' : ',';
+
+  // Parser CSV en respectant les guillemets
+  const lignes = parserCSV(text, sep);
+
+  // Trouver la ligne d'en-têtes : celle qui contient "Nom" et "Prénom"
+  let idxHeader = -1;
+  for (let i = 0; i < lignes.length; i++) {
+    const cellsLower = lignes[i].map(c => (c||'').toLowerCase().trim());
+    const hasNom = cellsLower.some(c => c === 'nom');
+    const hasPrenom = cellsLower.some(c => c === 'prénom' || c === 'prenom');
+    if (hasNom && hasPrenom) { idxHeader = i; break; }
+  }
+  if (idxHeader < 0) {
+    document.getElementById('csv-content').innerHTML =
+      `<div style="color:var(--red);padding:20px">Impossible de trouver les colonnes "Nom" et "Prénom" dans le fichier CSV. Vérifiez que ces colonnes existent.</div>`;
+    document.getElementById('modal-csv-eleves').classList.add('open');
+    document.getElementById('csv-btn-importer').style.display = 'none';
+    return;
+  }
+
+  const headers = lignes[idxHeader].map(c => (c||'').toLowerCase().trim());
+  const idxNom = headers.findIndex(h => h === 'nom');
+  const idxPrenom = headers.findIndex(h => h === 'prénom' || h === 'prenom');
+  const idxClasse = headers.findIndex(h => h === 'groupe' || h === 'classe');
+
+  // Parser les lignes d'élèves
+  const eleves = [];
+  for (let i = idxHeader + 1; i < lignes.length; i++) {
+    const row = lignes[i];
+    if (!row || !row.length) continue;
+    const nom = (row[idxNom] || '').trim();
+    const prenom = (row[idxPrenom] || '').trim();
+    if (!nom && !prenom) continue;
+    if (!nom || !prenom) continue;
+    const classe = idxClasse >= 0 ? (row[idxClasse] || '').trim() : '';
+    eleves.push({nom, prenom, classe});
+  }
+
+  if (!eleves.length) {
+    document.getElementById('csv-content').innerHTML =
+      `<div style="color:var(--red);padding:20px">Aucun élève trouvé dans le fichier.</div>`;
+    document.getElementById('modal-csv-eleves').classList.add('open');
+    document.getElementById('csv-btn-importer').style.display = 'none';
+    return;
+  }
+
+  // Identifier doublons existants et nouvelles classes
+  const normalize = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');
+  const aImporter = [];
+  const doublons = [];
+  const classesExistantes = new Set(db.classes.map(c => c.nom));
+  const nouvellesClasses = new Set();
+
+  for (const e of eleves) {
+    const dejaExiste = db.eleves.some(x =>
+      normalize(x.nom) === normalize(e.nom) && normalize(x.prenom) === normalize(e.prenom)
+    );
+    if (dejaExiste) {
+      doublons.push(e);
+    } else {
+      aImporter.push(e);
+      if (e.classe && !classesExistantes.has(e.classe)) {
+        nouvellesClasses.add(e.classe);
+      }
+    }
+  }
+
+  csvImportData = {aImporter, doublons, nouvellesClasses: [...nouvellesClasses]};
+  afficherListeCSV();
+}
+
+// Parser CSV simple gérant les guillemets et le séparateur fourni
+function parserCSV(text, sep) {
+  const lignes = [];
+  let cellule = '';
+  let ligne = [];
+  let dansGuillemets = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (dansGuillemets) {
+      if (c === '"') {
+        if (text[i+1] === '"') { cellule += '"'; i++; } // guillemet échappé
+        else { dansGuillemets = false; }
+      } else {
+        cellule += c;
+      }
+    } else {
+      if (c === '"') dansGuillemets = true;
+      else if (c === sep) { ligne.push(cellule); cellule = ''; }
+      else if (c === '\n') { ligne.push(cellule); lignes.push(ligne); ligne = []; cellule = ''; }
+      else if (c === '\r') { /* ignorer */ }
+      else cellule += c;
+    }
+  }
+  if (cellule || ligne.length) { ligne.push(cellule); lignes.push(ligne); }
+  return lignes;
+}
+
+function afficherListeCSV() {
+  const div = document.getElementById('csv-content');
+  const {aImporter, doublons, nouvellesClasses} = csvImportData;
+
+  let html = '';
+
+  if (nouvellesClasses.length) {
+    html += `<div style="background:#DBEAFE;border:1px solid #93C5FD;color:#1E3A8A;border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:4px">Nouvelles classes qui seront créées :</div>
+      <div style="font-size:13px">${nouvellesClasses.map(c=>`<span style="display:inline-block;background:white;padding:2px 8px;border-radius:4px;margin:2px">${c}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  if (doublons.length) {
+    html += `<div style="background:#FEF3C7;border:1px solid #FCD34D;color:#78350F;border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:4px">${doublons.length} élève(s) déjà présent(s), ignoré(s) :</div>
+      <div style="font-size:13px">${doublons.map(e=>`${e.prenom} ${e.nom}`).join(', ')}</div>
+    </div>`;
+  }
+
+  if (!aImporter.length) {
+    html += `<div style="text-align:center;padding:20px;color:var(--text2)">Aucun nouvel élève à importer.</div>`;
+    div.innerHTML = html;
+    document.getElementById('csv-btn-importer').style.display = 'none';
+    document.getElementById('modal-csv-eleves').classList.add('open');
+    return;
+  }
+
+  html += `<div style="font-size:13px;color:var(--text2);margin-bottom:12px"><strong>${aImporter.length} nouvel(le)s élève(s)</strong> à importer :</div>`;
+  html += `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead style="background:var(--bg)"><tr>
+        <th style="text-align:left;padding:8px 12px;font-weight:600">Prénom</th>
+        <th style="text-align:left;padding:8px 12px;font-weight:600">Nom</th>
+        <th style="text-align:left;padding:8px 12px;font-weight:600">Classe</th>
+      </tr></thead>
+      <tbody>`;
+  for (const e of aImporter) {
+    html += `<tr style="border-top:1px solid var(--border)">
+      <td style="padding:6px 12px">${e.prenom}</td>
+      <td style="padding:6px 12px">${e.nom}</td>
+      <td style="padding:6px 12px">${e.classe || '<span style="color:var(--text3)">—</span>'}</td>
+    </tr>`;
+  }
+  html += '</tbody></table></div>';
+
+  div.innerHTML = html;
+  document.getElementById('csv-btn-importer').style.display = 'inline-flex';
+  document.getElementById('modal-csv-eleves').classList.add('open');
+}
+
+function validerImportCSV() {
+  if (!csvImportData || !csvImportData.aImporter.length) return;
+  const {aImporter, nouvellesClasses} = csvImportData;
+
+  // 1. Créer les nouvelles classes
+  for (const nomClasse of nouvellesClasses) {
+    if (!db.classes.some(c => c.nom === nomClasse)) {
+      db.classes.push({id: nextId(db.classes), nom: nomClasse, annee: ''});
+    }
+  }
+
+  // 2. Créer les élèves
+  for (const e of aImporter) {
+    db.eleves.push({
+      id: nextId(db.eleves),
+      prenom: e.prenom,
+      nom: e.nom,
+      classe: e.classe || '',
+      email: '', tel: '',
+      parentsNom: '', parentsEmail: '', parentsTel: '',
+      patronNom: '', patronEmail: '', patronTel: ''
+    });
+  }
+
+  save();
+  closeModal('modal-csv-eleves');
+  renderAll();
+  toast(`${aImporter.length} élève(s) importé(s) ✓`);
+  csvImportData = null;
 }
 
 function quickAbsence(id) {
