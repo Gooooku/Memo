@@ -1,0 +1,2280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ma Classe">
+<meta http-equiv="Cache-Control" content="max-age=31536000">
+<link rel="manifest" href="/manifest.json">
+<title>Gestion de Classe</title>
+<style>
+  /* Icônes SVG inline via data-icon */
+  .ico { display:inline-flex; align-items:center; justify-content:center; width:1em; height:1em; vertical-align:-0.125em; }
+  .ico svg { width:1em; height:1em; fill:currentColor; }
+  :root {
+    --bg: #F4F2EE;
+    --surface: #FFFFFF;
+    --surface2: #F9F8F5;
+    --border: rgba(0,0,0,0.09);
+    --border2: rgba(0,0,0,0.15);
+    --text: #1A1A18;
+    --text2: #6B6860;
+    --text3: #9E9C96;
+    --accent: #2D6A4F;
+    --accent-light: #E8F5EE;
+    --accent-text: #1B4332;
+    --red: #C1121F;
+    --red-light: #FEE8EA;
+    --red-text: #7B0D14;
+    --amber: #B45309;
+    --amber-light: #FEF3C7;
+    --amber-text: #78350F;
+    --blue: #1E5FA8;
+    --blue-light: #EBF2FC;
+    --blue-text: #0F3460;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+  }
+
+  /* LAYOUT */
+  .app-layout { display: flex; min-height: 100vh; flex-direction: column; }
+
+  /* TOPBAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .topbar h2 { font-size: 18px; font-weight: 600; }
+  .topbar-actions { display: flex; gap: 8px; }
+
+  /* BOTTOM NAV (iPad/mobile) */
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    z-index: 10;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .bottom-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 10px 4px 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: inherit;
+    color: var(--text3);
+    min-height: 56px;
+    transition: color 0.15s;
+    position: relative;
+  }
+  .bottom-nav-btn .ico { font-size: 22px; }
+  .bottom-nav-btn.active { color: var(--accent); }
+  .bottom-nav-btn .badge-count {
+    position: absolute;
+    top: 6px; right: calc(50% - 18px);
+    background: var(--red);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+  }
+
+  /* FAB — bouton Ajouter flottant */
+  .fab {
+    position: fixed;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    right: 20px;
+    width: 52px; height: 52px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(45,106,79,0.4);
+    z-index: 9;
+    transition: transform 0.15s, background 0.15s;
+  }
+  .fab:hover { background: #235A42; transform: scale(1.05); }
+  .fab .ico { font-size: 22px; }
+
+  /* MAIN */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .content { padding: 16px; }
+
+  /* TABS */
+  .tab { display: none; }
+  .tab.active { display: block; }
+
+  /* STATS GRID */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .stat-card .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .stat-card .stat-val {
+    font-size: 28px;
+    font-weight: 600;
+    font-family: monospace;
+    line-height: 1;
+  }
+  .stat-card.red .stat-val { color: var(--red); }
+  .stat-card.amber .stat-val { color: var(--amber); }
+  .stat-card.blue .stat-val { color: var(--blue); }
+  .stat-card.green .stat-val { color: var(--accent); }
+
+  /* DESKTOP sidebar (≥1024px) */
+  @media (min-width: 1024px) {
+    .app-layout { flex-direction: row; }
+    .bottom-nav { display: none; }
+    .fab { display: none; }
+    .main { margin-left: 220px; padding-bottom: 0; }
+    .content { padding: 24px 28px; }
+    .stats-grid { grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .sidebar-desktop {
+      width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex !important;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      z-index: 10;
+    }
+  }
+  @media (max-width: 1023px) {
+    .sidebar-desktop { display: none; }
+  }
+
+  /* BOUTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.15s;
+    min-height: 44px;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #235A42; border-color: #235A42; }
+  .btn-danger { background: var(--red); color: #fff; border-color: var(--red); }
+  .btn-danger:hover { background: #9B0E18; }
+  .btn-sm { padding: 7px 14px; font-size: 13px; min-height: 36px; }
+  .btn-icon {
+    width: 44px; height: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .btn-icon:hover { background: var(--bg); color: var(--text); }
+  .btn-icon.danger:hover { background: var(--red-light); color: var(--red); border-color: var(--red); }
+  .btn-icon.success:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+  /* FORMS */
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-family: inherit;
+    background: var(--surface);
+    color: var(--text);
+    transition: border-color 0.15s;
+    outline: none;
+    min-height: 44px;
+    -webkit-appearance: none;
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus { border-color: var(--accent); }
+  .form-group textarea { resize: vertical; min-height: 90px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .card-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-header h3 { font-size: 14px; font-weight: 600; }
+  .card-body { padding: 0; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    background: var(--surface2);
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg); }
+
+  /* ELEVE NAME CELL */
+  .eleve-cell { display: flex; align-items: center; gap: 10px; }
+  .avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    color: var(--accent-text);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .avatar.blue { background: var(--blue-light); color: var(--blue-text); }
+  .avatar.red { background: var(--red-light); color: var(--red-text); }
+
+  /* BADGES */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .badge-green { background: var(--accent-light); color: var(--accent-text); }
+  .badge-red { background: var(--red-light); color: var(--red-text); }
+  .badge-amber { background: var(--amber-light); color: var(--amber-text); }
+  .badge-blue { background: var(--blue-light); color: var(--blue-text); }
+  .badge-gray { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    width: 90%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.2s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(12px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-header h3 { font-size: 15px; font-weight: 600; }
+  .modal-close {
+    width: 28px; height: 28px;
+    border: none;
+    background: var(--bg);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text2);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { background: var(--border); }
+  .modal-body { padding: 18px 20px; }
+  .modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  /* NAV BTN sidebar desktop */
+  .nav-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text2);
+    text-align: left;
+    transition: all 0.15s;
+    margin-bottom: 2px;
+    min-height: 44px;
+  }
+  .nav-btn:hover { background: var(--bg); color: var(--text); }
+  .nav-btn.active { background: var(--accent-light); color: var(--accent-text); font-weight: 500; }
+  .nav-btn .badge-count {
+    margin-left: auto;
+    background: var(--red);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+  }
+  .sidebar-logo {
+    padding: 20px 16px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo h1 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* DASH GRID */
+  .dash-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  @media (min-width: 600px) { .dash-grid { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 1024px) { .stats-grid { grid-template-columns: repeat(4,1fr); gap:14px; margin-bottom:24px; } }
+  .empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--text3);
+  }
+  .empty i { font-size: 28px; margin-bottom: 10px; display: block; }
+  .empty p { font-size: 14px; }
+
+  /* PHOTO PREVIEW */
+  .photo-preview {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    margin-top: 6px;
+    display: none;
+  }
+
+  /* DETAIL PANEL */
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .detail-stat {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+  }
+  .detail-stat .val { font-size: 22px; font-weight: 600; font-family: monospace; }
+  .detail-stat .lbl { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ACTIONS COL */
+  .actions-col { display: flex; gap: 4px; }
+
+  /* DASHBOARD GRID */
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* SEARCH */
+  .search-wrap { position: relative; }
+  .search-wrap i { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 13px; }
+  .search-wrap input { padding-left: 30px; }
+
+  /* NOTE CELL */
+  .note-cell { font-style: italic; color: var(--text3); font-size: 13px; }
+
+  /* PHOTO THUMB */
+  .photo-thumb {
+    width: 36px; height: 36px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .photo-thumb:hover { opacity: 0.8; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--text);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: var(--shadow-md);
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* FILTERS */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-chip {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--text2);
+    transition: all 0.15s;
+    font-family: inherit;
+    min-height: 44px;
+  }
+  .filter-chip:hover { background: var(--bg); }
+  .filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- SIDEBAR DESKTOP -->
+  <nav class="sidebar-desktop">
+    <div class="sidebar-logo">
+      <h1><span class="ico" aria-hidden="true" style="color:var(--accent)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18 16h-5v-1.26A4 4 0 0 0 16 11V9a4 4 0 0 0-8 0v2a4 4 0 0 0 3 3.87V16H6a1 1 0 0 0 0 2h12a1 1 0 0 0 0-2zM10 11V9a2 2 0 0 1 4 0v2a2 2 0 0 1-4 0zM3 3h18v2H3zm0 14h2v2H3z"/></svg></span> <span>Ma Classe</span></h1>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;font-family:monospace" id="classe-tag-d">—</div>
+    </div>
+    <div style="padding:12px 12px 0;flex:1">
+      <button class="nav-btn active" id="dnav-dashboard" onclick="switchTab('dashboard',this,'dnav-dashboard')">
+        <span class="ico" style="font-size:16px"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm3.7-12.07-4.38 4.37a2 2 0 1 0 2.83 2.83l4.37-4.38a1 1 0 0 0-2.82-2.82zM6.5 11a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 6.5 11zm11 0a1.5 1.5 0 1 0 1.5 1.5 1.5 1.5 0 0 0-1.5-1.5zM12 6.5a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 12 6.5z"/></svg></span><span>Tableau de bord</span>
+      </button>
+      <button class="nav-btn" id="dnav-eleves" onclick="switchTab('eleves',this,'dnav-eleves')">
+        <span class="ico" style="font-size:16px"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span><span>Élèves</span>
+      </button>
+      <button class="nav-btn" id="dnav-absences" onclick="switchTab('absences',this,'dnav-absences')">
+        <span class="ico" style="font-size:16px"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8 12 10.59 9.41 8 8 9.41 10.59 12 8 14.59z"/></svg></span><span>Absences</span>
+        <span class="badge-count" id="nav-badge-abs-d" style="display:none">0</span>
+      </button>
+      <button class="nav-btn" id="dnav-retenues" onclick="switchTab('retenues',this,'dnav-retenues')">
+        <span class="ico" style="font-size:16px"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span><span>Retenues</span>
+      </button>
+      <button class="nav-btn" id="dnav-classes" onclick="switchTab('classes',this,'dnav-classes')">
+        <span class="ico" style="font-size:16px"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h2v8l2.5-1.5L13 12V4h5v16z"/></svg></span><span>Classes</span>
+      </button>
+    </div>
+    <div style="padding:16px;border-top:1px solid var(--border)">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openModal('modal-add-eleve')">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span> Ajouter un élève
+      </button>
+    </div>
+  </nav>
+
+  <!-- BOTTOM NAV (iPad/mobile) -->
+  <nav class="bottom-nav">
+    <button class="bottom-nav-btn active" id="bnav-dashboard" onclick="switchTab('dashboard',this,'bnav-dashboard')">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm3.7-12.07-4.38 4.37a2 2 0 1 0 2.83 2.83l4.37-4.38a1 1 0 0 0-2.82-2.82zM6.5 11a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 6.5 11zm11 0a1.5 1.5 0 1 0 1.5 1.5 1.5 1.5 0 0 0-1.5-1.5zM12 6.5a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 12 6.5z"/></svg></span>
+      <span>Accueil</span>
+    </button>
+    <button class="bottom-nav-btn" id="bnav-eleves" onclick="switchTab('eleves',this,'bnav-eleves')">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span>
+      <span>Élèves</span>
+    </button>
+    <button class="bottom-nav-btn" id="bnav-absences" onclick="switchTab('absences',this,'bnav-absences')">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8 12 10.59 9.41 8 8 9.41 10.59 12 8 14.59z"/></svg></span>
+      <span>Absences</span>
+      <span class="badge-count" id="nav-badge-abs" style="display:none">0</span>
+    </button>
+    <button class="bottom-nav-btn" id="bnav-retenues" onclick="switchTab('retenues',this,'bnav-retenues')">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span>
+      <span>Retenues</span>
+    </button>
+    <button class="bottom-nav-btn" id="bnav-classes" onclick="switchTab('classes',this,'bnav-classes')">
+      <span class="ico"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h2v8l2.5-1.5L13 12V4h5v16z"/></svg></span>
+      <span>Classes</span>
+    </button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" onclick="openModal('modal-add-eleve')" title="Ajouter un élève">
+    <span class="ico"><svg viewBox="0 0 24 24"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
+  </button>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+    <div class="topbar">
+      <h2 id="topbar-title">Tableau de bord</h2>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select id="select-classe-global" onchange="changerClasse(this.value)" style="padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);min-height:40px;outline:none;max-width:160px;-webkit-appearance:none;cursor:pointer">
+          <option value="">Toutes les classes</option>
+        </select>
+        <button onclick="exportData()" title="Sauvegarder les données" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--accent)">
+          <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2zm-6 .67 2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/></svg></span>
+        </button>
+        <button onclick="document.getElementById('import-input').click()" title="Restaurer les données" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--blue)">
+          <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2zm-7-7.67L9.41 6.92 8 5.5l5-5 5 5-1.41 1.42L13 4.33V14h-2V4.33z"/></svg></span>
+        </button>
+        <button onclick="document.getElementById('memo-pdf-input').click()" title="Importer relevé MEMO PDF et envoyer aux familles" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--red)">
+          <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span>
+        </button>
+        <input type="file" id="memo-pdf-input" accept="application/pdf" style="display:none" onchange="importerMemoPDF(this)">
+        <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(this)">
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="tab-dashboard" class="tab active">
+        <div class="stats-grid">
+          <div class="stat-card green">
+            <div class="stat-label"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span> Élèves</div>
+            <div class="stat-val" id="stat-eleves">0</div>
+          </div>
+          <div class="stat-card red">
+            <div class="stat-label"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8 12 10.59 9.41 8 8 9.41 10.59 12 8 14.59z"/></svg></span> Absences totales</div>
+            <div class="stat-val" id="stat-abs">0</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="stat-label"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span> Non excusées</div>
+            <div class="stat-val" id="stat-ne">0</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span> Retenues</div>
+            <div class="stat-val" id="stat-ret">0</div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3><span class="ico" aria-hidden="true" style="color:var(--amber)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 2v6l2 2-2 2v6h12v-6l-2-2 2-2V2H6zm10 14.5V18H8v-1.5l2-2v-.91L8 12v-1.46L10 9V8h4v1l2 1.54V12l-2 1.59v.91l2 2z"/></svg></span> En attente de justificatif</h3>
+            </div>
+            <div class="card-body" id="dash-attente"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3><span class="ico" aria-hidden="true" style="color:var(--red)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span> Absences non excusées</h3>
+            </div>
+            <div class="card-body" id="dash-nonexcuse"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3><span class="ico" aria-hidden="true" style="color:var(--blue)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span> Retenues à venir</h3>
+            </div>
+            <div class="card-body" id="dash-retenues"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ÉLÈVES -->
+      <div id="tab-eleves" class="tab">
+        <div class="filter-bar">
+          <div class="search-wrap" style="flex:1;max-width:280px">
+            <span class="ico" aria-hidden="true" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3)"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></span>
+            <input type="text" id="search-eleve" placeholder="Rechercher..." oninput="renderEleves()" style="padding-left:38px">
+          </div>
+        </div>
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th>Élève</th>
+                <th title="Absences excusées — total périodes">AEX</th>
+                <th title="Absences non excusées — total périodes">ANEX</th>
+                <th title="En attente de justificatif — total périodes">Attente</th>
+                <th title="Total AEX + ANEX">Total</th>
+                <th>Retenues</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tbody-eleves"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ABSENCES -->
+      <div id="tab-absences" class="tab">
+        <div class="filter-bar">
+          <button class="filter-chip active" onclick="filterAbs('tous',this)">Toutes</button>
+          <button class="filter-chip" onclick="filterAbs('non_excusee',this)">Non excusées</button>
+          <button class="filter-chip" onclick="filterAbs('en_attente',this)">En attente</button>
+          <button class="filter-chip" onclick="filterAbs('excusee',this)">Excusées</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-absence')" style="margin-left:auto">
+            <span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span> Absence
+          </button>
+        </div>
+        <div class="card">
+          <table>
+            <thead>
+              <tr><th>Élève</th><th>Date</th><th>Périodes</th><th>Statut</th><th>Note</th><th>Doc</th><th></th></tr>
+            </thead>
+            <tbody id="tbody-absences"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RETENUES -->
+      <div id="tab-retenues" class="tab">
+        <div class="filter-bar">
+          <button class="filter-chip active" onclick="filterRet('tous',this)">Toutes</button>
+          <button class="filter-chip" onclick="filterRet('avenir',this)">À venir</button>
+          <button class="filter-chip" onclick="filterRet('passees',this)">Passées</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-retenue')" style="margin-left:auto">
+            <span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span> Retenue
+          </button>
+        </div>
+        <div class="card">
+          <table>
+            <thead>
+              <tr><th>Élève</th><th>Date</th><th>Heure</th><th>Durée</th><th>Motif</th><th></th></tr>
+            </thead>
+            <tbody id="tbody-retenues"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CLASSES -->
+      <div id="tab-classes" class="tab">
+        <div class="filter-bar">
+          <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-classe')">
+            <span class="ico"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></span> Nouvelle classe
+          </button>
+        </div>
+        <div id="liste-classes"></div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div><!-- /app-layout -->
+
+<!-- MODAL AJOUTER/MODIFIER ÉLÈVE -->
+<div class="modal-overlay" id="modal-add-eleve">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h3 id="modal-eleve-titre"><span class="ico" aria-hidden="true" style="color:var(--accent)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span> <span id="modal-eleve-titre-txt">Ajouter un élève</span></h3>
+      <button class="modal-close" onclick="closeModal('modal-add-eleve')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="el-edit-id">
+      <div class="form-row">
+        <div class="form-group"><label>Prénom</label><input id="el-prenom" placeholder="Prénom"></div>
+        <div class="form-group"><label>Nom</label><input id="el-nom" placeholder="Nom"></div>
+      </div>
+      <div class="form-group"><label>Classe / Groupe</label>
+        <select id="el-classe-select">
+          <option value="">— Choisir une classe —</option>
+        </select>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px">Contact élève</div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="el-email" placeholder="eleve@exemple.com"></div>
+      <div class="form-group"><label>Téléphone</label><input type="tel" id="el-tel" placeholder="+32 470 00 00 00"></div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px">Contact parents</div>
+      <div class="form-group"><label>Nom</label><input id="el-parents-nom" placeholder="Nom des parents"></div>
+      <div class="form-group"><label>E-mail <span style="font-weight:400;color:var(--text3);font-size:11px">(plusieurs : séparer par virgule)</span></label><input type="text" id="el-parents-email" placeholder="parents@exemple.com, autre@exemple.com"></div>
+      <div class="form-group"><label>Téléphone</label><input type="tel" id="el-parents-tel" placeholder="+32 470 00 00 00"></div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px">Contact patron</div>
+      <div class="form-group"><label>Nom</label><input id="el-patron-nom" placeholder="Nom du patron"></div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="el-patron-email" placeholder="patron@exemple.com"></div>
+      <div class="form-group"><label>Téléphone</label><input type="tel" id="el-patron-tel" placeholder="+32 470 00 00 00"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-add-eleve')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveEleve()"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> <span id="modal-eleve-btn-txt">Ajouter</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ABSENCE -->
+<div class="modal-overlay" id="modal-add-absence">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><span class="ico" aria-hidden="true" style="color:var(--red)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8 12 10.59 9.41 8 8 9.41 10.59 12 8 14.59z"/></svg></span> Signaler une absence</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-absence')"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Élève</label><select id="abs-eleve"></select></div>
+      <div class="form-row">
+        <div class="form-group"><label>Date</label><input type="date" id="abs-date"></div>
+        <div class="form-group"><label>Nombre de périodes</label><input type="number" id="abs-periodes" value="1" min="1" max="8" step="1" placeholder="1"></div>
+      </div>
+      <div class="form-group"><label>Statut</label>
+        <select id="abs-statut">
+          <option value="non_excusee">Non excusée</option>
+          <option value="en_attente">En attente de justificatif</option>
+          <option value="excusee">Excusée</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Note (optionnel)</label><textarea id="abs-note" placeholder="Raison, commentaire..."></textarea></div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 10px">Document justificatif (optionnel)</div>
+      <div class="form-group"><label>Type de document</label>
+        <select id="abs-doc-type">
+          <option value="">— Aucun document —</option>
+          <option value="CM">CM</option>
+          <option value="Armée">Armée</option>
+          <option value="Patron">Patron</option>
+          <option value="Parents">Parents</option>
+          <option value="Autres">Autres</option>
+        </select>
+      </div>
+      <div class="form-group" id="abs-doc-file-group" style="display:none">
+        <label>Fichier (photo ou PDF)</label>
+        <input type="file" id="abs-doc-file" accept="image/*,application/pdf" onchange="previewAbsDoc(this)">
+        <img id="abs-doc-preview" class="photo-preview" alt="Aperçu">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-add-absence')">Annuler</button>
+      <button class="btn btn-primary" onclick="addAbsence()"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RETENUE -->
+<div class="modal-overlay" id="modal-add-retenue">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><span class="ico" aria-hidden="true" style="color:var(--blue)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span> Planifier une retenue</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-retenue')"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Élève</label><select id="ret-eleve"></select></div>
+      <div class="form-row">
+        <div class="form-group"><label>Date</label><input type="date" id="ret-date"></div>
+        <div class="form-group"><label>Heure</label><input type="time" id="ret-heure" value="17:00"></div>
+      </div>
+      <div class="form-group"><label>Durée (minutes)</label><input type="number" id="ret-duree" value="60" min="15" step="15"></div>
+      <div class="form-group"><label>Motif</label><textarea id="ret-motif" placeholder="Raison de la retenue..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-add-retenue')">Annuler</button>
+      <button class="btn btn-primary" onclick="addRetenue()"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DÉTAIL ÉLÈVE -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <h3 id="detail-titre">Fiche élève</h3>
+      <button class="modal-close" onclick="closeModal('modal-detail')"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-detail')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOUVELLE CLASSE -->
+<div class="modal-overlay" id="modal-add-classe">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h3><span class="ico" style="color:var(--accent)"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h2v8l2.5-1.5L13 12V4h5v16z"/></svg></span> Nouvelle classe</h3>
+      <button class="modal-close" onclick="closeModal('modal-add-classe')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Nom de la classe</label><input id="classe-nom-input" placeholder="Ex : 3ème B, Terminale S..."></div>
+      <div class="form-group"><label>Année scolaire (optionnel)</label><input id="classe-annee-input" placeholder="Ex : 2025-2026"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-add-classe')">Annuler</button>
+      <button class="btn btn-primary" onclick="addClasse()"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Créer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MEMO PDF — validation envois -->
+<div class="modal-overlay" id="modal-memo">
+  <div class="modal" style="max-width:720px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h3><span class="ico" style="color:var(--red)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span> Envoi des relevés MEMO</h3>
+      <button class="modal-close" onclick="closeModal('modal-memo')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body" id="memo-body" style="flex:1;overflow-y:auto">
+      <div id="memo-loading" style="text-align:center;padding:40px">
+        <div style="font-size:14px;color:var(--text2)">Analyse du PDF en cours...</div>
+      </div>
+      <div id="memo-content" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-memo')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTACT ÉLÈVE -->
+<div class="modal-overlay" id="modal-contact">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <h3 id="contact-titre">Infos de contact</h3>
+      <button class="modal-close" onclick="closeModal('modal-contact')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body" id="contact-body"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-contact')">Fermer</button>
+      <button class="btn btn-primary" id="contact-fiche-btn"><span class="ico"><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 5-5 5 5 0 0 1-5 5zm0-8a3 3 0 1 0 3 3 3 3 0 0 0-3-3z"/></svg></span> Voir la fiche</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PHOTO -->
+<div class="modal-overlay" id="modal-photo" onclick="closeModal('modal-photo')">
+  <div style="max-width:600px;width:90%">
+    <img id="photo-full" src="" style="width:100%;border-radius:var(--radius);box-shadow:var(--shadow-md)" alt="Document">
+    <p style="text-align:center;color:#fff;margin-top:10px;font-size:13px">Cliquer pour fermer</p>
+  </div>
+</div>
+
+<!-- MODAL CHANGER STATUT -->
+<div class="modal-overlay" id="modal-changer-statut">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="statut-modal-titre">Modifier l'absence</h3>
+      <button class="modal-close" onclick="closeModal('modal-changer-statut')"><span class="ico"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="statut-abs-id">
+      <input type="hidden" id="statut-nouveau">
+      <div class="form-row">
+        <div class="form-group"><label>Date</label><input type="date" id="statut-date"></div>
+        <div class="form-group"><label>Nombre de périodes</label><input type="number" id="statut-periodes" value="1" min="1" max="8" step="1"></div>
+      </div>
+      <div class="form-group"><label>Note</label><textarea id="statut-note" placeholder="Raison, commentaire..."></textarea></div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 10px">Document justificatif (optionnel)</div>
+      <div class="form-group"><label>Type de document</label>
+        <select id="statut-doc-type">
+          <option value="">— Aucun document —</option>
+          <option value="CM">CM</option>
+          <option value="Armée">Armée</option>
+          <option value="Patron">Patron</option>
+          <option value="Parents">Parents</option>
+          <option value="Autres">Autres</option>
+        </select>
+      </div>
+      <div class="form-group" id="statut-doc-file-group" style="display:none">
+        <label>Fichier (photo ou PDF)</label>
+        <input type="file" id="statut-doc-file" accept="image/*,application/pdf" capture="environment" onchange="previewStatutDoc(this)">
+        <img id="statut-doc-preview" class="photo-preview" alt="Aperçu">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-changer-statut')">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmerChangementStatut()"><span class="ico"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========== ICÔNES SVG ========== */
+const ICONS = {
+  'gauge-high':        '<path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm3.7-12.07-4.38 4.37a2 2 0 1 0 2.83 2.83l4.37-4.38a1 1 0 0 0-2.82-2.82zM6.5 11a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 6.5 11zm11 0a1.5 1.5 0 1 0 1.5 1.5 1.5 1.5 0 0 0-1.5-1.5zM12 6.5a1.5 1.5 0 1 0 1.5 1.5A1.5 1.5 0 0 0 12 6.5z"/>',
+  'users':             '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>',
+  'calendar-xmark':    '<path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8 12 10.59 9.41 8 8 9.41 10.59 12 8 14.59z"/>',
+  'clock':             '<path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>',
+  'user-plus':         '<path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>',
+  'chalkboard-user':   '<path d="M18 16h-5v-1.26A4 4 0 0 0 16 11V9a4 4 0 0 0-8 0v2a4 4 0 0 0 3 3.87V16H6a1 1 0 0 0 0 2h12a1 1 0 0 0 0-2zM10 11V9a2 2 0 0 1 4 0v2a2 2 0 0 1-4 0zM3 3h18v2H3zm0 14h2v2H3z"/>',
+  'check':             '<path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>',
+  'xmark':             '<path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>',
+  'trash':             '<path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',
+  'eye':               '<path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 5-5 5 5 0 0 1-5 5zm0-8a3 3 0 1 0 3 3 3 3 0 0 0-3-3z"/>',
+  'plus':              '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>',
+  'magnifying-glass':  '<path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>',
+  'calendar-check':    '<path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zm-7-8.5-4 4-2-2-1.41 1.41L8 17.41l5.41-5.41L12 10.5z"/>',
+  'hourglass-half':    '<path d="M6 2v6l2 2-2 2v6h12v-6l-2-2 2-2V2H6zm10 14.5V18H8v-1.5l2-2v-.91L8 12v-1.46L10 9V8h4v1l2 1.54V12l-2 1.59v.91l2 2z"/>',
+  'triangle-exclamation': '<path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>',
+  'file-lines':        '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6zm2-5h8v2H8zm0-3h8v2H8z"/>',
+  'floppy-disk':       '<path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm2 16H5V5h11.17L19 7.83V19zm-7-7a3 3 0 1 0 3 3 3 3 0 0 0-3-3zm0 4a1 1 0 1 1 1-1 1 1 0 0 1-1 1zM7 5h7v4H7z"/>',
+  'circle-check':      '<path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-1-5.41-2.59-2.59L7 13.41 11 17.41l7-7-1.41-1.42z"/>',
+  'folder-open':       '<path d="M20 6h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2zm0 12H4V8h16v10z"/>',
+  'inbox':             '<path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 12h-4a3 3 0 0 1-6 0H5V5h14v10z"/>',
+  'file-circle-check': '<path d="M14 2H6a2 2 0 0 0-2 2v10.08A7 7 0 0 0 12 20a7 7 0 0 0 6-10.68V8l-4-6zm-1 1.5L17.5 8H13V3.5zM12 18a5 5 0 1 1 5-5 5 5 0 0 1-5 5zm2.59-7.41L11 14.17l-1.59-1.58L8 14l3 3 5-5z"/>',
+  'envelope':          '<path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/>',
+  'phone':             '<path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1-.25 11.36 11.36 0 0 0 3.55.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.36 11.36 0 0 0 .57 3.55 1 1 0 0 1-.24 1l-2.21 2.24z"/>',
+};
+function ico(name, style='') {
+  const path = ICONS[name] || '<path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>';
+  return `<span class="ico" aria-hidden="true" style="${style}"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">${path}</svg></span>`;
+}
+let db = { classes:[], eleves:[], absences:[], retenues:[], documents:[] };
+let absFilter = 'tous';
+let retFilter = 'tous';
+let currentEleveId = null;
+let currentClasse = ''; // classe active globale
+
+function changerClasse(val) {
+  currentClasse = val;
+  renderAll();
+}
+
+// Retourne les élèves filtrés selon la classe active
+function getElevesActifs() {
+  if (!currentClasse) return db.eleves;
+  return db.eleves.filter(e => e.classe === currentClasse);
+}
+
+// Retourne les IDs des élèves actifs
+function getIdsActifs() {
+  return new Set(getElevesActifs().map(e => e.id));
+}
+
+// Retourne les absences filtrées selon la classe active
+function getAbsencesActives() {
+  const ids = getIdsActifs();
+  return db.absences.filter(a => ids.has(a.eleveId));
+}
+
+// Retourne les retenues filtrées selon la classe active
+function getRetenuesActives() {
+  const ids = getIdsActifs();
+  return db.retenues.filter(r => ids.has(r.eleveId));
+}
+
+function save() {
+  try {
+    localStorage.setItem('gestion_classe_v2', JSON.stringify(db));
+  } catch(e) {
+    // localStorage plein — essayer de libérer de la place en compressant les photos
+    try {
+      const dbLight = JSON.parse(JSON.stringify(db));
+      // Tronquer les docData trop volumineux
+      dbLight.absences = dbLight.absences.map(a => ({
+        ...a,
+        docData: a.docData && a.docData.length > 50000 ? a.docData.slice(0, 50000) : a.docData
+      }));
+      localStorage.setItem('gestion_classe_v2', JSON.stringify(dbLight));
+    } catch(e2) {
+      alert('Attention : impossible de sauvegarder. Le stockage de l\'iPad est plein. Supprimez des documents joints pour libérer de la place.');
+    }
+  }
+}
+function load() {
+  try {
+    const d = localStorage.getItem('gestion_classe_v2');
+    if (d) {
+      db = JSON.parse(d);
+      // Migration : s'assurer que tous les tableaux existent
+      if (!db.classes)   db.classes   = [];
+      if (!db.eleves)    db.eleves    = [];
+      if (!db.absences)  db.absences  = [];
+      if (!db.retenues)  db.retenues  = [];
+      if (!db.documents) db.documents = [];
+      // Migration classes depuis les données existantes
+      if (db.classes.length === 0 && db.eleves.length > 0) {
+        const noms = [...new Set(db.eleves.map(e=>e.classe).filter(Boolean))];
+        db.classes = noms.map((nom,i) => ({id:i+1, nom, annee:''}));
+      }
+    }
+  } catch(e) {}
+}
+
+function initDemo() {
+  if (db.eleves.length > 0) return;
+  const today = new Date().toISOString().slice(0,10);
+  const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  const tomorrow = new Date(Date.now()+86400000).toISOString().slice(0,10);
+  db.classes = [
+    {id:1, nom:'3ème B', annee:'2025-2026'},
+    {id:2, nom:'4ème A', annee:'2025-2026'},
+  ];
+  db.eleves = [
+    {id:1, prenom:'Marie',  nom:'Dupont',  classe:'3ème B', email:'', tel:'', parentsNom:'', parentsEmail:'', parentsTel:'', patronNom:'', patronEmail:'', patronTel:''},
+    {id:2, prenom:'Lucas',  nom:'Martin',  classe:'3ème B', email:'', tel:'', parentsNom:'', parentsEmail:'', parentsTel:'', patronNom:'', patronEmail:'', patronTel:''},
+    {id:3, prenom:'Emma',   nom:'Bernard', classe:'3ème B', email:'', tel:'', parentsNom:'', parentsEmail:'', parentsTel:'', patronNom:'', patronEmail:'', patronTel:''},
+    {id:4, prenom:'Noah',   nom:'Petit',   classe:'4ème A', email:'', tel:'', parentsNom:'', parentsEmail:'', parentsTel:'', patronNom:'', patronEmail:'', patronTel:''},
+    {id:5, prenom:'Chloé',  nom:'Moreau',  classe:'3ème B', email:'', tel:'', parentsNom:'', parentsEmail:'', parentsTel:'', patronNom:'', patronEmail:'', patronTel:''},
+  ];
+  db.absences = [
+    {id:1, eleveId:2, date:today,     periodes:2, statut:'non_excusee', note:'', docType:'', docData:''},
+    {id:2, eleveId:3, date:yesterday, periodes:3, statut:'en_attente',  note:'Maladie', docType:'', docData:''},
+    {id:3, eleveId:5, date:yesterday, periodes:1, statut:'excusee',     note:'RDV médical', docType:'CM', docData:''},
+  ];
+  db.retenues = [
+    {id:1, eleveId:2, date:tomorrow, heure:'17:00', duree:60, motif:'Comportement perturbateur'},
+    {id:2, eleveId:4, date:today,    heure:'16:00', duree:30, motif:'Devoir non rendu'},
+  ];
+  db.documents = [];
+  save();
+}
+
+/* ========== UTILS ========== */
+function nextId(arr) { return arr.length ? Math.max(...arr.map(x=>x.id))+1 : 1; }
+function getEleve(id) { return db.eleves.find(e=>e.id===id) || {prenom:'?',nom:'',classe:''}; }
+function initials(e) { return (e.prenom[0]||'')+(e.nom[0]||''); }
+function today() { return new Date().toISOString().slice(0,10); }
+function fmtDate(d) {
+  if (!d) return '';
+  const [y,m,j] = d.split('-');
+  return `${j}/${m}/${y}`;
+}
+function fmtDuree(min) { return min >= 60 ? `${Math.floor(min/60)}h${min%60?String(min%60).padStart(2,'0'):''}` : `${min} min`; }
+function daysSince(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return Math.floor((now - d) / 86400000);
+}
+function attenteRetard(a) {
+  return a.statut === 'en_attente' && daysSince(a.date) > 14;
+}
+
+function badgeAbs(s) {
+  if (s==='excusee')     return '<span class="badge badge-green"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Excusée</span>';
+  if (s==='non_excusee') return '<span class="badge badge-red"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span> Non excusée</span>';
+  return '<span class="badge badge-amber"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 2v6l2 2-2 2v6h12v-6l-2-2 2-2V2H6zm10 14.5V18H8v-1.5l2-2v-.91L8 12v-1.46L10 9V8h4v1l2 1.54V12l-2 1.59v.91l2 2z"/></svg></span> En attente</span>';
+}
+function docTypeLabel(t) {
+  return {certificat_medical:'Certificat médical', mot_parents:'Mot des parents', autre:'Autre'}[t] || t;
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+/* ========== NAV ========== */
+const titles = {
+  dashboard: 'Tableau de bord',
+  eleves: 'Élèves',
+  absences: 'Absences',
+  retenues: 'Retenues',
+  classes: 'Classes',
+};
+
+function switchTab(tab, btn, btnId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-btn, .nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  const bBtn = document.getElementById('bnav-'+tab);
+  const dBtn = document.getElementById('dnav-'+tab);
+  if (bBtn) bBtn.classList.add('active');
+  if (dBtn) dBtn.classList.add('active');
+  document.getElementById('topbar-title').textContent = titles[tab] || tab;
+  renderAll();
+}
+
+/* ========== MODALS ========== */
+function openModal(id) {
+  populateSelects();
+  if (id==='modal-add-absence') document.getElementById('abs-date').value = today();
+  if (id==='modal-add-retenue') document.getElementById('ret-date').value = today();
+  if (id==='modal-add-eleve') {
+    document.getElementById('el-edit-id').value = '';
+    document.getElementById('modal-eleve-titre-txt').textContent = 'Ajouter un élève';
+    document.getElementById('modal-eleve-btn-txt').textContent = 'Ajouter';
+    ['el-prenom','el-nom','el-email','el-tel','el-parents-nom','el-parents-email','el-parents-tel','el-patron-nom','el-patron-email','el-patron-tel'].forEach(i => { const el=document.getElementById(i); if(el) el.value=''; });
+    populateClasseSelect('');
+  }
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function populateSelects() {
+  ['abs-eleve','ret-eleve'].forEach(sid => {
+    const sel = document.getElementById(sid);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Choisir --</option>' +
+      db.eleves.map(e => `<option value="${e.id}">${e.prenom} ${e.nom} (${e.classe})</option>`).join('');
+    if (currentEleveId) sel.value = currentEleveId;
+  });
+}
+
+function populateClasseSelect(selected) {
+  const sel = document.getElementById('el-classe-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Choisir une classe —</option>' +
+    db.classes.map(c => `<option value="${c.nom}" ${c.nom===selected?'selected':''}>${c.nom}${c.annee?' ('+c.annee+')':''}</option>`).join('');
+}
+
+/* ========== RENDER ========== */
+function updateSelectClasseGlobal() {
+  const sel = document.getElementById('select-classe-global');
+  if (!sel) return;
+  const cur = currentClasse;
+  sel.innerHTML = '<option value="">Toutes les classes</option>' +
+    db.classes.map(c => `<option value="${c.nom}" ${c.nom===cur?'selected':''}>${c.nom}</option>`).join('');
+}
+
+function renderAll() {
+  updateSelectClasseGlobal();
+  renderDashboard();
+  renderEleves();
+  renderAbsences();
+  renderRetenues();
+  renderClasses();
+  updateNavBadges();
+  ['classe-tag', 'classe-tag-d'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = currentClasse || (db.classes.length ? db.classes.map(c=>c.nom).join(' · ') : '—');
+  });
+}
+
+function updateNavBadges() {
+  const ne = getAbsencesActives().filter(a=>a.statut==='non_excusee').length;
+  ['nav-badge-abs','nav-badge-abs-d'].forEach(id => {
+    const badge = document.getElementById(id);
+    if (!badge) return;
+    badge.textContent = ne;
+    badge.style.display = ne ? 'inline-block' : 'none';
+  });
+}
+
+/* --- DASHBOARD --- */
+function renderDashboard() {
+  const absActives  = getAbsencesActives();
+  const retActives  = getRetenuesActives();
+  const elevesActifs = getElevesActifs();
+  document.getElementById('stat-eleves').textContent = elevesActifs.length;
+  document.getElementById('stat-abs').textContent = absActives.length;
+  document.getElementById('stat-ne').textContent = absActives.filter(a=>a.statut==='non_excusee').length;
+  document.getElementById('stat-ret').textContent = retActives.length;
+
+  const todayStr = today();
+
+  // En attente (en premier)
+  const ea = absActives.filter(a=>a.statut==='en_attente');
+  const deEA = document.getElementById('dash-attente');
+  deEA.innerHTML = ea.length ? ea.slice(0,4).map(a => {
+    const e = getEleve(a.eleveId);
+    const per = a.periodes || 1;
+    const retard = attenteRetard(a);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">
+      <div class="avatar">${initials(e)}</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:500">${e.prenom} ${e.nom}</div>
+      <div style="font-size:12px;color:var(--text3)">${fmtDate(a.date)} — <span style="font-family:monospace">${per} période${per>1?'s':''}</span>${retard?' <span style="color:#92400E;font-weight:600">+14j</span>':''}${a.note?' — '+a.note:''}</div></div>
+    </div>`;
+  }).join('') : '<div class="empty"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 12h-4a3 3 0 0 1-6 0H5V5h14v10z"/></svg></span><p>Aucune absence en attente</p></div>';
+
+  // Non excusées
+  const ne = absActives.filter(a=>a.statut==='non_excusee');
+  const deNE = document.getElementById('dash-nonexcuse');
+  deNE.innerHTML = ne.length ? ne.slice(0,5).map(a => {
+    const e = getEleve(a.eleveId);
+    const per = a.periodes || 1;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">
+      <div class="avatar red">${initials(e)}</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:500">${e.prenom} ${e.nom}</div>
+      <div style="font-size:12px;color:var(--text3)">${fmtDate(a.date)} — <span style="font-family:monospace">${per} période${per>1?'s':''}</span></div></div>
+    </div>`;
+  }).join('') : '<div class="empty"><span class="ico" aria-hidden="true" style="color:var(--accent)"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-1-5.41-2.59-2.59L7 13.41 11 17.41l7-7-1.41-1.42z"/></svg></span><p>Aucune absence non excusée</p></div>';
+
+  // Retenues à venir
+  const upcoming = retActives.filter(r=>r.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date));
+  const deR = document.getElementById('dash-retenues');
+  deR.innerHTML = upcoming.length ? upcoming.slice(0,4).map(r => {
+    const e = getEleve(r.eleveId);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">
+      <div class="avatar blue">${initials(e)}</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:500">${e.prenom} ${e.nom}</div>
+      <div style="font-size:12px;color:var(--text3)">${fmtDate(r.date)} à ${r.heure} — ${fmtDuree(r.duree)}</div></div>
+      <span class="badge badge-blue">${r.heure}</span>
+    </div>`;
+  }).join('') : '<div class="empty"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zm-7-8.5-4 4-2-2-1.41 1.41L8 17.41l5.41-5.41L12 10.5z"/></svg></span><p>Aucune retenue à venir</p></div>';
+}
+
+/* --- ÉLÈVES --- */
+function renderEleves() {
+  const search = (document.getElementById('search-eleve')?.value || '').toLowerCase().trim();
+  const tbody = document.getElementById('tbody-eleves');
+  let list = getElevesActifs();
+  if (search) list = list.filter(e => (e.prenom+' '+e.nom).toLowerCase().includes(search));
+  if (!list.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><span class="ico" aria-hidden="true" style="font-size:28px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></span><p>${currentClasse?'Aucun élève dans cette classe':'Aucun élève trouvé'}</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map(e => {
+    const absE  = db.absences.filter(a=>a.eleveId===e.id);
+    const aex   = absE.filter(a=>a.statut==='excusee').reduce((s,a)=>s+(a.periodes||1),0);
+    const anex  = absE.filter(a=>a.statut==='non_excusee').reduce((s,a)=>s+(a.periodes||1),0);
+    const att   = absE.filter(a=>a.statut==='en_attente').reduce((s,a)=>s+(a.periodes||1),0);
+    const hasRetard = absE.some(a => attenteRetard(a));
+    const retE  = db.retenues.filter(r=>r.eleveId===e.id).length;
+    const total = aex + anex;
+    const alerte = total >= 18;
+    const rowStyle = alerte ? 'background:rgba(193,18,31,0.04);' : '';
+    const nameStyle = alerte ? 'color:var(--red);font-weight:600' : 'font-weight:500';
+    const alertBadge = alerte ? `<span title="${total} périodes au total" style="display:inline-flex;align-items:center;gap:3px;margin-left:6px;font-size:11px;background:var(--red-light);color:var(--red);padding:1px 6px;border-radius:10px;font-weight:600"><span class="ico" aria-hidden="true" style="font-size:10px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span> ${total} pér.</span>` : '';
+    const totalBadge = total >= 18
+      ? `<span class="badge badge-red">${total}</span>`
+      : total > 0 ? `<span class="badge badge-gray">${total}</span>` : '<span style="color:var(--text3)">0</span>';
+    return `<tr style="${rowStyle}">
+      <td><div class="eleve-cell"><div class="avatar" style="${alerte?'background:var(--red-light);color:var(--red-text)':''}">${initials(e)}</div><div><div style="${nameStyle};cursor:pointer;text-decoration:underline;text-underline-offset:3px" onclick="showContact(${e.id})">${e.prenom} ${e.nom}${alertBadge}</div><div style="font-size:12px;color:var(--text3)">${e.classe}</div></div></div></td>
+      <td>${aex>0?`<span class="badge badge-green">${aex}</span>`:'<span style="color:var(--text3)">0</span>'}</td>
+      <td>${anex>0?`<span class="badge badge-red">${anex}</span>`:'<span style="color:var(--text3)">0</span>'}</td>
+      <td>${att>0?`<span class="badge badge-amber">${att}</span>${hasRetard?` <span title="Justificatif en retard (+14j)" style="display:inline-flex;align-items:center;gap:2px;font-size:11px;background:#FEF3C7;color:#92400E;padding:1px 5px;border-radius:8px;font-weight:600"><span class="ico" aria-hidden="true" style="font-size:9px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span> +14j</span>`:''}`:'<span style="color:var(--text3)">0</span>'}</td>
+      <td>${totalBadge}</td>
+      <td>${retE>0?`<span class="badge badge-blue">${retE}</span>`:'<span style="color:var(--text3)">0</span>'}</td>
+      <td><div class="actions-col">
+        <button class="btn-icon" title="Fiche" onclick="showDetail(${e.id})"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17a5 5 0 1 1 5-5 5 5 0 0 1-5 5zm0-8a3 3 0 1 0 3 3 3 3 0 0 0-3-3z"/></svg></span></button>
+        <button class="btn-icon" title="Modifier" onclick="editEleve(${e.id})"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></span></button>
+        <button class="btn-icon" title="Absence" onclick="quickAbsence(${e.id})"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM9.41 16 12 13.41 14.59 16 16 14.59 13.41 12 16 9.41 14.59 8 12 10.59 9.41 8 8 9.41 10.59 12 8 14.59z"/></svg></span></button>
+        <button class="btn-icon danger" title="Supprimer" onclick="deleteEleve(${e.id})"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></span></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+/* --- ABSENCES --- */
+function renderAbsences() {
+  const tbody = document.getElementById('tbody-absences');
+  let list = [...getAbsencesActives()].sort((a,b)=>b.date.localeCompare(a.date));
+  if (absFilter!=='tous') list = list.filter(a=>a.statut===absFilter);
+  if (!list.length) { tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.89 3 3 3.9 3 5v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zm-7-8.5-4 4-2-2-1.41 1.41L8 17.41l5.41-5.41L12 10.5z"/></svg></span><p>Aucune absence correspondante</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map(a => {
+    const e = getEleve(a.eleveId);
+    const per = a.periodes || 1;
+    const retard = attenteRetard(a);
+    const retardBadge = retard ? `<span title="${daysSince(a.date)} jours sans justificatif" style="display:inline-flex;align-items:center;gap:3px;font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 6px;border-radius:8px;font-weight:600;margin-left:4px"><span class="ico" aria-hidden="true" style="font-size:9px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span> +14j</span>` : '';
+    const docBtn = a.docData
+      ? `<button class="btn-icon" title="Voir document (${a.docType})" onclick="viewAbsDoc(${a.id})" style="color:var(--accent)"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6zm2-5h8v2H8zm0-3h8v2H8z"/></svg></span></button><span style="font-size:11px;font-weight:600;color:var(--accent-text);background:var(--accent-light);padding:1px 6px;border-radius:8px;margin-left:2px">${a.docType}</span>`
+      : `<span style="color:var(--text3);font-size:12px">—</span>`;
+    return `<tr>
+      <td><div class="eleve-cell"><div class="avatar">${initials(e)}</div><span style="font-weight:500">${e.prenom} ${e.nom}</span></div></td>
+      <td>${fmtDate(a.date)}</td>
+      <td><span class="badge badge-gray" style="font-family:monospace">${per} pér.</span></td>
+      <td>${badgeAbs(a.statut)}${retardBadge}</td>
+      <td class="note-cell">${a.note||'—'}</td>
+      <td style="text-align:center">${docBtn}</td>
+      <td><div class="actions-col">
+        ${a.statut!=='excusee'?`<button class="btn-icon success" title="Marquer excusée" onclick="excuseAbsence(${a.id})"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span></button>`:''}
+        ${a.statut!=='non_excusee'?`<button class="btn-icon danger" title="Marquer non excusée" onclick="invaliderAbsence(${a.id})"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>`:''}
+        ${a.statut!=='en_attente'?`<button class="btn-icon" title="Mettre en attente" onclick="enAttenteAbsence(${a.id})" style="font-size:11px;color:var(--amber)"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 2v6l2 2-2 2v6h12v-6l-2-2 2-2V2H6zm10 14.5V18H8v-1.5l2-2v-.91L8 12v-1.46L10 9V8h4v1l2 1.54V12l-2 1.59v.91l2 2z"/></svg></span></button>`:''}
+        <button class="btn-icon danger" title="Supprimer" onclick="deleteAbsence(${a.id})"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></span></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+/* --- RETENUES --- */
+function renderRetenues() {
+  const tbody = document.getElementById('tbody-retenues');
+  const todayStr = today();
+  let list = [...getRetenuesActives()].sort((a,b)=>b.date.localeCompare(a.date));
+  if (retFilter==='avenir')  list = list.filter(r=>r.date>=todayStr);
+  if (retFilter==='passees') list = list.filter(r=>r.date<todayStr);
+  if (!list.length) { tbody.innerHTML=`<tr><td colspan="6"><div class="empty"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span><p>Aucune retenue</p></div></td></tr>`; return; }
+  tbody.innerHTML = list.map(r => {
+    const e = getEleve(r.eleveId);
+    const past = r.date < todayStr;
+    return `<tr style="${past?'opacity:0.6':''}">
+      <td><div class="eleve-cell"><div class="avatar blue">${initials(e)}</div><span style="font-weight:500">${e.prenom} ${e.nom}</span></div></td>
+      <td>${fmtDate(r.date)}</td>
+      <td>${r.heure}</td>
+      <td>${fmtDuree(r.duree)}</td>
+      <td>${r.motif||'—'}</td>
+      <td><button class="btn-icon danger" onclick="deleteRetenue(${r.id})"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></span></button></td>
+    </tr>`;
+  }).join('');
+}
+
+/* --- DOCUMENTS --- */
+
+/* ========== ACTIONS ========== */
+function saveEleve() {
+  const editId   = parseInt(document.getElementById('el-edit-id').value) || 0;
+  const prenom   = document.getElementById('el-prenom').value.trim();
+  const nom      = document.getElementById('el-nom').value.trim();
+  const classe   = document.getElementById('el-classe-select').value;
+  const email    = document.getElementById('el-email').value.trim();
+  const tel      = document.getElementById('el-tel').value.trim();
+  const parentsNom   = document.getElementById('el-parents-nom').value.trim();
+  const parentsEmail = document.getElementById('el-parents-email').value.trim();
+  const parentsTel   = document.getElementById('el-parents-tel').value.trim();
+  const patronNom    = document.getElementById('el-patron-nom').value.trim();
+  const patronEmail  = document.getElementById('el-patron-email').value.trim();
+  const patronTel    = document.getElementById('el-patron-tel').value.trim();
+  if (!prenom || !nom) { alert('Prénom et nom obligatoires.'); return; }
+  if (!classe) { alert('Veuillez choisir une classe.'); return; }
+
+  if (editId) {
+    const e = db.eleves.find(x=>x.id===editId);
+    if (e) Object.assign(e, {prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel});
+    toast('Élève modifié ✓');
+  } else {
+    db.eleves.push({id:nextId(db.eleves), prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel});
+    toast('Élève ajouté ✓');
+  }
+  save(); closeModal('modal-add-eleve'); renderAll();
+}
+
+function editEleve(id) {
+  const e = getEleve(id);
+  document.getElementById('el-edit-id').value = id;
+  document.getElementById('modal-eleve-titre-txt').textContent = 'Modifier l\'élève';
+  document.getElementById('modal-eleve-btn-txt').textContent = 'Enregistrer';
+  document.getElementById('el-prenom').value = e.prenom || '';
+  document.getElementById('el-nom').value = e.nom || '';
+  document.getElementById('el-email').value = e.email || '';
+  document.getElementById('el-tel').value = e.tel || '';
+  document.getElementById('el-parents-nom').value = e.parentsNom || e.contactNom || '';
+  document.getElementById('el-parents-email').value = e.parentsEmail || e.contactEmail || '';
+  document.getElementById('el-parents-tel').value = e.parentsTel || e.contactTel || '';
+  document.getElementById('el-patron-nom').value = e.patronNom || '';
+  document.getElementById('el-patron-email').value = e.patronEmail || '';
+  document.getElementById('el-patron-tel').value = e.patronTel || '';
+  populateClasseSelect(e.classe || '');
+  document.getElementById('modal-add-eleve').classList.add('open');
+}
+
+function addClasse() {
+  const nom = document.getElementById('classe-nom-input').value.trim();
+  const annee = document.getElementById('classe-annee-input').value.trim();
+  if (!nom) { alert('Nom de classe obligatoire.'); return; }
+  if (db.classes.find(c=>c.nom===nom)) { alert('Cette classe existe déjà.'); return; }
+  db.classes.push({id:nextId(db.classes), nom, annee});
+  save(); closeModal('modal-add-classe');
+  document.getElementById('classe-nom-input').value='';
+  document.getElementById('classe-annee-input').value='';
+  renderAll(); toast('Classe créée ✓');
+}
+
+function deleteClasse(id) {
+  const c = db.classes.find(x=>x.id===id);
+  if (!c) return;
+  const nbEleves = db.eleves.filter(e=>e.classe===c.nom).length;
+  const msg = nbEleves > 0
+    ? `Supprimer la classe "${c.nom}" et ses ${nbEleves} élève(s) avec toutes leurs données ?`
+    : `Supprimer la classe "${c.nom}" ?`;
+  if (!confirm(msg)) return;
+  const ids = db.eleves.filter(e=>e.classe===c.nom).map(e=>e.id);
+  db.eleves    = db.eleves.filter(e=>e.classe!==c.nom);
+  db.absences  = db.absences.filter(a=>!ids.includes(a.eleveId));
+  db.retenues  = db.retenues.filter(r=>!ids.includes(r.eleveId));
+  db.documents = db.documents.filter(d=>!ids.includes(d.eleveId));
+  db.classes   = db.classes.filter(x=>x.id!==id);
+  save(); renderAll(); toast('Classe supprimée');
+}
+
+function renderClasses() {
+  const div = document.getElementById('liste-classes');
+  if (!div) return;
+  if (!db.classes.length) {
+    div.innerHTML = `<div class="card"><div style="padding:32px;text-align:center;color:var(--text3)">
+      <span class="ico" style="font-size:32px;display:block;margin-bottom:10px"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h2v8l2.5-1.5L13 12V4h5v16z"/></svg></span>
+      <p>Aucune classe. Créez-en une avec le bouton ci-dessus.</p></div></div>`;
+    return;
+  }
+  div.innerHTML = db.classes.map(c => {
+    const nbEleves = db.eleves.filter(e=>e.classe===c.nom).length;
+    const nbAbs = db.absences.filter(a=>db.eleves.find(e=>e.classe===c.nom&&e.id===a.eleveId)).length;
+    return `<div class="card" style="margin-bottom:12px">
+      <div style="padding:16px 20px;display:flex;align-items:center;gap:14px">
+        <div style="width:48px;height:48px;border-radius:var(--radius);background:var(--accent-light);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--accent-text)">
+          <span class="ico"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h2v8l2.5-1.5L13 12V4h5v16z"/></svg></span>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:16px;font-weight:600">${c.nom}</div>
+          <div style="font-size:13px;color:var(--text3)">${c.annee||''}${c.annee?' · ':''}<span style="color:var(--text2)">${nbEleves} élève${nbEleves!==1?'s':''}</span> · ${nbAbs} absence${nbAbs!==1?'s':''}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="filtrerParClasse('${c.nom}')">Voir</button>
+          <button class="btn-icon danger" title="Supprimer la classe" onclick="deleteClasse(${c.id})"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></span></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtrerParClasse(nom) {
+  changerClasse(nom);
+  const bBtn = document.getElementById('bnav-eleves');
+  const dBtn = document.getElementById('dnav-eleves');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.bottom-nav-btn,.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-eleves').classList.add('active');
+  if (bBtn) bBtn.classList.add('active');
+  if (dBtn) dBtn.classList.add('active');
+  document.getElementById('topbar-title').textContent = 'Élèves';
+}
+
+function deleteEleve(id) {
+  if (!confirm('Supprimer cet élève et toutes ses données ?')) return;
+  db.eleves    = db.eleves.filter(e=>e.id!==id);
+  db.absences  = db.absences.filter(a=>a.eleveId!==id);
+  db.retenues  = db.retenues.filter(r=>r.eleveId!==id);
+  db.documents = db.documents.filter(d=>d.eleveId!==id);
+  save(); renderAll(); toast('Élève supprimé');
+}
+
+function addAbsence() {
+  const eleveId  = parseInt(document.getElementById('abs-eleve').value);
+  const date     = document.getElementById('abs-date').value;
+  const periodes = parseInt(document.getElementById('abs-periodes').value) || 1;
+  const statut   = document.getElementById('abs-statut').value;
+  const note     = document.getElementById('abs-note').value.trim();
+  const docType  = document.getElementById('abs-doc-type').value;
+  const preview  = document.getElementById('abs-doc-preview');
+  const docData  = (preview.src && preview.src.startsWith('data:')) ? preview.src : '';
+  if (!eleveId || !date) { alert('Élève et date obligatoires.'); return; }
+  db.absences.push({ id:nextId(db.absences), eleveId, date, periodes, statut, note, docType: docType||'', docData });
+  save(); closeModal('modal-add-absence');
+  document.getElementById('abs-note').value='';
+  document.getElementById('abs-periodes').value='1';
+  document.getElementById('abs-doc-type').value='';
+  document.getElementById('abs-doc-file').value='';
+  preview.style.display='none'; preview.src='';
+  document.getElementById('abs-doc-file-group').style.display='none';
+  renderAll(); toast('Absence enregistrée ✓');
+}
+
+function excuseAbsence(id, fromDetail) {
+  const a = db.absences.find(x=>x.id===id);
+  if (!a) return;
+  document.getElementById('statut-abs-id').value = id;
+  document.getElementById('statut-nouveau').value = 'excusee';
+  document.getElementById('statut-modal-titre').textContent = 'Marquer comme excusée';
+  document.getElementById('statut-date').value = a.date;
+  document.getElementById('statut-periodes').value = a.periodes || 1;
+  document.getElementById('statut-note').value = a.note || '';
+  document.getElementById('statut-doc-type').value = a.docType || '';
+  document.getElementById('statut-doc-file-group').style.display = a.docType ? 'block' : 'none';
+  const prev = document.getElementById('statut-doc-preview');
+  prev.src = a.docData || ''; prev.style.display = (a.docData && !a.docData.startsWith('data:application/pdf')) ? 'block' : 'none';
+  const modal = document.getElementById('modal-changer-statut');
+  modal.dataset.fromDetail = fromDetail ? '1' : '';
+  modal.dataset.eleveId = a.eleveId;
+  if (fromDetail) closeModal('modal-detail');
+  modal.classList.add('open');
+}
+
+function invaliderAbsence(id, fromDetail) {
+  const a = db.absences.find(x=>x.id===id);
+  if (!a) return;
+  document.getElementById('statut-abs-id').value = id;
+  document.getElementById('statut-nouveau').value = 'non_excusee';
+  document.getElementById('statut-modal-titre').textContent = 'Marquer comme non excusée';
+  document.getElementById('statut-date').value = a.date;
+  document.getElementById('statut-periodes').value = a.periodes || 1;
+  document.getElementById('statut-note').value = a.note || '';
+  document.getElementById('statut-doc-type').value = '';
+  document.getElementById('statut-doc-file-group').style.display = 'none';
+  const prev = document.getElementById('statut-doc-preview');
+  prev.src = ''; prev.style.display = 'none';
+  const modal = document.getElementById('modal-changer-statut');
+  modal.dataset.fromDetail = fromDetail ? '1' : '';
+  modal.dataset.eleveId = a.eleveId;
+  if (fromDetail) closeModal('modal-detail');
+  modal.classList.add('open');
+}
+
+function confirmerChangementStatut() {
+  const id       = parseInt(document.getElementById('statut-abs-id').value);
+  const statut   = document.getElementById('statut-nouveau').value;
+  const date     = document.getElementById('statut-date').value;
+  const periodes = parseInt(document.getElementById('statut-periodes').value) || 1;
+  const note     = document.getElementById('statut-note').value.trim();
+  const docType  = document.getElementById('statut-doc-type').value;
+  const prev     = document.getElementById('statut-doc-preview');
+  const docData  = (prev.src && prev.src.startsWith('data:')) ? prev.src : '';
+  const modal    = document.getElementById('modal-changer-statut');
+  const fromDetail = modal.dataset.fromDetail === '1';
+  const eleveId  = parseInt(modal.dataset.eleveId);
+
+  const a = db.absences.find(x=>x.id===id);
+  if (a) {
+    a.statut = statut; a.date = date; a.periodes = periodes;
+    a.note = note; a.docType = docType; a.docData = docData;
+    save();
+  }
+  closeModal('modal-changer-statut');
+  renderAll();
+  if (fromDetail && eleveId) showDetail(eleveId);
+  else toast(statut === 'excusee' ? 'Absence excusée ✓' : 'Absence non excusée');
+}
+
+/* Compresse une image via canvas avant stockage (max 800px, qualité 0.7) */
+function compressImage(file, callback) {
+  if (file.type === 'application/pdf') {
+    const reader = new FileReader();
+    reader.onload = e => callback(e.target.result);
+    reader.readAsDataURL(file);
+    return;
+  }
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const MAX = 800;
+    let w = img.width, h = img.height;
+    if (w > MAX || h > MAX) {
+      if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+      else { w = Math.round(w * MAX / h); h = MAX; }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', 0.7));
+  };
+  img.src = url;
+}
+
+function previewStatutDoc(input) {
+  const file = input.files[0];
+  if (!file) return;
+  compressImage(file, data => {
+    const img = document.getElementById('statut-doc-preview');
+    img.src = data;
+    img.style.display = file.type === 'application/pdf' ? 'none' : 'block';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('statut-doc-type').addEventListener('change', function() {
+    document.getElementById('statut-doc-file-group').style.display = this.value ? 'block' : 'none';
+  });
+});
+
+function enAttenteAbsence(id, fromDetail) {
+  const a = db.absences.find(x=>x.id===id);
+  if (!a) return;
+  a.statut = 'en_attente'; save(); renderAll();
+  if (fromDetail) showDetail(a.eleveId);
+  toast('Absence mise en attente');
+}
+
+function previewAbsDoc(input) {
+  const file = input.files[0];
+  if (!file) return;
+  compressImage(file, data => {
+    const img = document.getElementById('abs-doc-preview');
+    img.src = data;
+    img.style.display = file.type === 'application/pdf' ? 'none' : 'block';
+  });
+}
+
+function viewAbsDoc(id) {
+  const a = db.absences.find(x=>x.id===id);
+  if (!a || !a.docData) return;
+  if (a.docData.startsWith('data:application/pdf')) {
+    const w = window.open(''); w.document.write(`<iframe src="${a.docData}" style="width:100%;height:100vh;border:none"></iframe>`);
+  } else {
+    document.getElementById('photo-full').src = a.docData;
+    document.getElementById('modal-photo').classList.add('open');
+  }
+}
+
+function deleteAbsence(id) {
+  db.absences = db.absences.filter(a=>a.id!==id);
+  save(); renderAll(); toast('Absence supprimée');
+}
+
+function addRetenue() {
+  const eleveId = parseInt(document.getElementById('ret-eleve').value);
+  const date    = document.getElementById('ret-date').value;
+  const heure   = document.getElementById('ret-heure').value;
+  const duree   = parseInt(document.getElementById('ret-duree').value)||60;
+  const motif   = document.getElementById('ret-motif').value.trim();
+  if (!eleveId || !date) { alert('Élève et date obligatoires.'); return; }
+  db.retenues.push({ id:nextId(db.retenues), eleveId, date, heure, duree, motif });
+  save(); closeModal('modal-add-retenue');
+  document.getElementById('ret-motif').value='';
+  renderAll(); toast('Retenue planifiée ✓');
+}
+
+function deleteRetenue(id) {
+  db.retenues = db.retenues.filter(r=>r.id!==id);
+  save(); renderAll(); toast('Retenue supprimée');
+}
+
+function filterAbs(f, btn) {
+  absFilter = f;
+  document.querySelectorAll('#tab-absences .filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAbsences();
+}
+
+function filterRet(f, btn) {
+  retFilter = f;
+  document.querySelectorAll('#tab-retenues .filter-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderRetenues();
+}
+
+function previewDoc(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('doc-preview');
+    img.src = e.target.result;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+
+
+
+function showDetail(id) {
+  currentEleveId = id;
+  const e = getEleve(id);
+  const abs  = db.absences.filter(a=>a.eleveId===id).sort((a,b)=>b.date.localeCompare(a.date));
+  const rets = db.retenues.filter(r=>r.eleveId===id);
+  const aex      = abs.filter(a=>a.statut==='excusee').reduce((s,a)=>s+(a.periodes||1),0);
+  const aexCM    = abs.filter(a=>a.statut==='excusee' && (a.docType==='CM' || a.docType==='certificat_medical')).reduce((s,a)=>s+(a.periodes||1),0);
+  const aexSansCM= aex - aexCM;
+  const anex = abs.filter(a=>a.statut==='non_excusee').reduce((s,a)=>s+(a.periodes||1),0);
+  const att  = abs.filter(a=>a.statut==='en_attente').reduce((s,a)=>s+(a.periodes||1),0);
+  const total = aex + anex;
+  const alerte = total >= 18;
+  document.getElementById('detail-titre').innerHTML =
+    `<div class="eleve-cell"><div class="avatar" style="${alerte?'background:var(--red-light);color:var(--red-text)':''}">${initials(e)}</div>${e.prenom} ${e.nom} <span class="badge badge-gray" style="margin-left:6px">${e.classe}</span>${alerte?`<span class="badge badge-red" style="margin-left:6px"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span> ${total} pér.</span>`:''}</div>`;
+
+  let html = `<div class="detail-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="detail-stat">
+      <div class="val" style="color:var(--accent)">${aex}</div>
+      <div class="lbl">AEX</div>
+      ${aex>0?`<div style="font-size:10px;margin-top:4px;display:flex;flex-direction:column;gap:2px">
+        <span style="color:var(--accent)">CM : ${aexCM}</span>
+        <span style="color:var(--text3)">Sans CM : ${aexSansCM}</span>
+      </div>`:''}
+    </div>
+    <div class="detail-stat"><div class="val" style="color:var(--red)">${anex}</div><div class="lbl">ANEX</div></div>
+    <div class="detail-stat"><div class="val" style="color:var(--amber)">${att}</div><div class="lbl">Attente</div></div>
+    <div class="detail-stat"><div class="val" style="color:var(--blue)">${rets.length}</div><div class="lbl">Retenues</div></div>
+  </div>`;
+
+  // Infos de contact
+  const hasContact = e.email || e.tel || e.contactNom || e.contactEmail || e.contactTel;
+  if (hasContact) {
+    html += `<div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em">Contact</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">`;
+    if (e.email || e.tel) {
+      html += `<div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600">ÉLÈVE</div>
+        ${e.email?`<div style="font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:3px"><span class="ico" aria-hidden="true" style="color:var(--text3);width:13px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg></span><a href="mailto:${e.email}" style="color:var(--blue);text-decoration:none">${e.email}</a></div>`:''}
+        ${e.tel?`<div style="font-size:13px;display:flex;align-items:center;gap:6px"><span class="ico" aria-hidden="true" style="color:var(--text3);width:13px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1-.25 11.36 11.36 0 0 0 3.55.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.36 11.36 0 0 0 .57 3.55 1 1 0 0 1-.24 1l-2.21 2.24z"/></svg></span><a href="tel:${e.tel}" style="color:var(--blue);text-decoration:none">${e.tel}</a></div>`:''}
+      </div>`;
+    }
+    if (e.contactNom || e.contactEmail || e.contactTel) {
+      html += `<div style="background:var(--bg);border-radius:var(--radius-sm);padding:10px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:600">${e.contactNom?e.contactNom.toUpperCase():'PARENT / PATRON'}</div>
+        ${e.contactEmail?`<div style="font-size:13px;display:flex;align-items:center;gap:6px;margin-bottom:3px"><span class="ico" aria-hidden="true" style="color:var(--text3);width:13px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg></span><a href="mailto:${e.contactEmail}" style="color:var(--blue);text-decoration:none">${e.contactEmail}</a></div>`:''}
+        ${e.contactTel?`<div style="font-size:13px;display:flex;align-items:center;gap:6px"><span class="ico" aria-hidden="true" style="color:var(--text3);width:13px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1-.25 11.36 11.36 0 0 0 3.55.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.36 11.36 0 0 0 .57 3.55 1 1 0 0 1-.24 1l-2.21 2.24z"/></svg></span><a href="tel:${e.contactTel}" style="color:var(--blue);text-decoration:none">${e.contactTel}</a></div>`:''}
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  if (abs.length) {
+    html += '<div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:6px;margin-top:4px;text-transform:uppercase;letter-spacing:.05em">Absences</div>';
+    html += abs.map(a => {
+      const per = a.periodes || 1;
+      const docIcon = a.docData
+        ? `<button onclick="viewAbsDoc(${a.id})" style="border:none;background:none;cursor:pointer;padding:0 2px;color:var(--accent)" title="Voir document"><span class="ico" aria-hidden="true" style="font-size:13px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6zm2-5h8v2H8zm0-3h8v2H8z"/></svg></span></button><span style="font-size:10px;font-weight:600;color:var(--accent-text);background:var(--accent-light);padding:1px 5px;border-radius:8px;margin-left:2px">${a.docType}</span>`
+        : `<span style="width:20px;display:inline-block"></span>`;
+      const retard = attenteRetard(a);
+      const retardIcon = retard ? `<span title="${daysSince(a.date)} jours sans justificatif" style="font-size:10px;background:#FEF3C7;color:#92400E;padding:1px 5px;border-radius:8px;font-weight:600;margin-left:3px"><span class="ico" aria-hidden="true" style="font-size:9px"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg></span> +14j</span>` : '';
+      return `<div style="display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <span style="min-width:80px">${fmtDate(a.date)}</span>
+        <span style="font-family:monospace;color:var(--text3);font-size:12px;min-width:45px">${per} pér.</span>
+        ${docIcon}
+        <span style="flex:1"></span>
+        ${badgeAbs(a.statut)}${retardIcon}
+        <div style="display:flex;gap:3px;margin-left:4px">
+          ${a.statut!=='excusee'?`<button class="btn-icon success" style="width:24px;height:24px;font-size:11px" title="Excuser" onclick="excuseAbsence(${a.id},true)"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span></button>`:''}
+          ${a.statut!=='non_excusee'?`<button class="btn-icon danger" style="width:24px;height:24px;font-size:11px" title="Non excusée" onclick="invaliderAbsence(${a.id},true)"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>`:''}
+          ${a.statut!=='en_attente'?`<button class="btn-icon" style="width:24px;height:24px;font-size:10px;color:var(--amber)" title="En attente" onclick="enAttenteAbsence(${a.id},true)"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 2v6l2 2-2 2v6h12v-6l-2-2 2-2V2H6zm10 14.5V18H8v-1.5l2-2v-.91L8 12v-1.46L10 9V8h4v1l2 1.54V12l-2 1.59v.91l2 2z"/></svg></span></button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    html += '<br>';
+  }
+  if (rets.length) {
+    html += '<div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Retenues</div>';
+    html += rets.map(r=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">${fmtDate(r.date)} à ${r.heure} — ${r.motif||'—'}</div>`).join('');
+    html += '<br>';
+  }
+
+  // Commentaires
+  const commentaire = e.commentaire || '';
+  html += `<div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:6px;margin-top:4px;text-transform:uppercase;letter-spacing:.05em">Commentaires</div>
+  <textarea id="detail-commentaire" style="width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text);resize:vertical;min-height:80px;outline:none" placeholder="Notes libres sur l'élève...">${commentaire}</textarea>
+  <button onclick="saveCommentaire(${id})" class="btn btn-primary btn-sm" style="margin-top:8px"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm2 16H5V5h11.17L19 7.83V19zm-7-7a3 3 0 1 0 3 3 3 3 0 0 0-3-3zm0 4a1 1 0 1 1 1-1 1 1 0 0 1-1 1zM7 5h7v4H7z"/></svg></span> Sauvegarder</button>`;
+
+  document.getElementById('detail-body').innerHTML = html;
+  openModal('modal-detail');
+}
+
+function saveCommentaire(id) {
+  const e = db.eleves.find(x=>x.id===id);
+  if (!e) return;
+  e.commentaire = document.getElementById('detail-commentaire').value;
+  save(); toast('Commentaire sauvegardé ✓');
+}
+
+function showContact(id) {
+  const e = getEleve(id);
+  document.getElementById('contact-titre').innerHTML =
+    `<div class="eleve-cell"><div class="avatar" style="width:36px;height:36px">${initials(e)}</div>${e.prenom} ${e.nom} <span class="badge badge-gray" style="margin-left:6px">${e.classe}</span></div>`;
+
+  const hasEleve = e.email || e.tel;
+  const hasParents = e.parentsNom || e.parentsEmail || e.parentsTel || e.contactNom || e.contactEmail || e.contactTel;
+  const hasPatron = e.patronNom || e.patronEmail || e.patronTel;
+
+  let html = '';
+  if (!hasEleve && !hasParents && !hasPatron) {
+    html = '<p style="color:var(--text3);font-size:14px;text-align:center;padding:16px 0">Aucune information de contact enregistrée.</p>';
+  } else {
+    const contactBlock = (titre, nom, email, tel) => {
+      if (!nom && !email && !tel) return '';
+      return `<div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">${titre}</div>
+        <div style="background:var(--bg);border-radius:var(--radius-sm);padding:12px;display:flex;flex-direction:column;gap:10px">
+          ${nom?`<div style="font-size:14px;font-weight:500">${nom}</div>`:''}
+          ${email?`<div style="display:flex;align-items:center;gap:10px"><span class="ico" style="color:var(--text3);font-size:18px"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg></span><a href="mailto:${email}" style="font-size:15px;color:var(--blue);text-decoration:none">${email}</a></div>`:''}
+          ${tel?`<div style="display:flex;align-items:center;gap:10px"><span class="ico" style="color:var(--text3);font-size:18px"><svg viewBox="0 0 24 24"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1-.25 11.36 11.36 0 0 0 3.55.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1 11.36 11.36 0 0 0 .57 3.55 1 1 0 0 1-.24 1l-2.21 2.24z"/></svg></span><a href="tel:${tel}" style="font-size:15px;color:var(--blue);text-decoration:none">${tel}</a></div>`:''}
+        </div>
+      </div>`;
+    };
+    html += contactBlock('Élève', '', e.email||'', e.tel||'');
+    html += contactBlock('Parents', e.parentsNom||e.contactNom||'', e.parentsEmail||e.contactEmail||'', e.parentsTel||e.contactTel||'');
+    html += contactBlock('Patron', e.patronNom||'', e.patronEmail||'', e.patronTel||'');
+  }
+
+  document.getElementById('contact-body').innerHTML = html;
+  document.getElementById('contact-fiche-btn').onclick = () => { closeModal('modal-contact'); showDetail(id); };
+  document.getElementById('modal-contact').classList.add('open');
+}
+
+function exportData() {
+  try {
+    const json = JSON.stringify(db, null, 2);
+    const blob = new Blob([json], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `ma-classe-sauvegarde-${date}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Sauvegarde téléchargée ✓');
+  } catch(e) {
+    alert('Erreur lors de l\'export : ' + e.message);
+  }
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!confirm('Restaurer cette sauvegarde ? Les données actuelles seront remplacées.')) {
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let text = e.target.result;
+      // Nettoyer le BOM éventuel
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      text = text.trim();
+      const data = JSON.parse(text);
+      if (!data.eleves) {
+        alert('Fichier invalide — ce n\'est pas une sauvegarde de Ma Classe.');
+        input.value = '';
+        return;
+      }
+      db = data;
+      if (!db.classes)   db.classes   = [];
+      if (!db.absences)  db.absences  = [];
+      if (!db.retenues)  db.retenues  = [];
+      if (!db.documents) db.documents = [];
+      save();
+      renderAll();
+      toast('Données restaurées ✓');
+    } catch(err) {
+      alert('Erreur : ' + err.message + '\n\nAssurez-vous de sélectionner le fichier .json de sauvegarde.');
+    }
+    input.value = '';
+  };
+  reader.onerror = () => {
+    alert('Impossible de lire le fichier. Essayez de le sélectionner depuis Fichiers > Téléchargements.');
+    input.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+/* ========== IMPORT MEMO PDF ========== */
+let memoData = null; // {pdfBytes, eleves: [{nom, prenom, pages: [pageNum, ...]}]}
+
+async function importerMemoPDF(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  if (!window.pdfjsLib) {
+    alert('La bibliothèque PDF n\'est pas chargée. Connectez-vous à internet une fois pour la mettre en cache.');
+    return;
+  }
+  document.getElementById('memo-loading').style.display = 'block';
+  document.getElementById('memo-content').style.display = 'none';
+  document.getElementById('modal-memo').classList.add('open');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfBytes = new Uint8Array(arrayBuffer);
+    const pdf = await pdfjsLib.getDocument({data: pdfBytes.slice()}).promise;
+    const eleves = await analyserMemoPDF(pdf);
+    memoData = {pdfBytes, eleves};
+    afficherListeMemo();
+  } catch(e) {
+    document.getElementById('memo-loading').innerHTML =
+      `<div style="color:var(--red);padding:20px">Erreur lors de la lecture du PDF : ${e.message}</div>`;
+  }
+}
+
+// Analyse le PDF : extrait nom/prénom de chaque page et groupe par élève
+async function analyserMemoPDF(pdf) {
+  const pagesInfo = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({scale: 1});
+    const textContent = await page.getTextContent();
+    const nomComplet = extraireNomPagePDF(textContent.items, viewport.width);
+    pagesInfo.push({page: i, nomComplet});
+  }
+  // Grouper pages consécutives avec le même élève
+  const eleves = [];
+  let courant = null;
+  for (const p of pagesInfo) {
+    if (!p.nomComplet) {
+      if (courant) courant.pages.push(p.page);
+      continue;
+    }
+    if (courant && courant.nomComplet === p.nomComplet) {
+      courant.pages.push(p.page);
+    } else {
+      courant = {nomComplet: p.nomComplet, pages: [p.page]};
+      eleves.push(courant);
+    }
+  }
+  // Décomposer nom complet en nom + prénom
+  // Convention MEMO : "Nom Prénom" (Nom de famille d'abord, parfois 2 mots)
+  // Heuristique : si "X Y Z", on essaie X Y = nom, Z = prénom
+  for (const e of eleves) {
+    const parts = e.nomComplet.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      // Dernier mot = prénom, le reste = nom
+      e.prenom = parts[parts.length - 1];
+      e.nom = parts.slice(0, -1).join(' ');
+    } else {
+      e.nom = e.nomComplet;
+      e.prenom = '';
+    }
+  }
+  return eleves;
+}
+
+// Extrait "Nom Prénom" en utilisant les coordonnées (x,y) des items texte
+function extraireNomPagePDF(items, pageWidth) {
+  const SEUIL_DROITE = pageWidth ? pageWidth * 0.5 : 300; // moitié droite de la page
+  // Chaque item a {str, transform: [a,b,c,d,x,y], width, ...}
+  // En pdf.js, transform[4]=x, transform[5]=y (origine bas-gauche)
+  const elements = items.filter(it => it.str && it.str.trim()).map(it => ({
+    text: it.str.trim(),
+    x: it.transform[4],
+    y: it.transform[5]
+  }));
+
+  // Grouper par y arrondi (tolérance ±3)
+  const lignes = [];
+  for (const el of elements) {
+    let ligne = lignes.find(l => Math.abs(l.y - el.y) < 3);
+    if (!ligne) {
+      ligne = {y: el.y, items: []};
+      lignes.push(ligne);
+    }
+    ligne.items.push(el);
+  }
+  lignes.forEach(l => l.items.sort((a,b) => a.x - b.x));
+  lignes.sort((a,b) => b.y - a.y); // du haut vers le bas (y plus grand = plus haut en pdf.js)
+
+  // Récupère le contenu de la ligne à l'index donné, seulement les items en zone droite
+  function texteDroit(idx) {
+    if (idx < 0 || idx >= lignes.length) return '';
+    return lignes[idx].items.filter(it => it.x > SEUIL_DROITE).map(i => i.text).join(' ').trim();
+  }
+
+  function lignesDansZoneDroite(filtre) {
+    const result = [];
+    for (let i = 0; i < lignes.length; i++) {
+      const t = texteDroit(i);
+      if (filtre(t)) result.push({index: i, texte: t});
+    }
+    return result;
+  }
+
+  // Cas 1 : "Monsieur" ou "Madame" → ligne suivante = nom du contact, ligne après = "Concerne : Nom Prénom"
+  let trouve = lignesDansZoneDroite(t => /^(Monsieur|Madame)$/i.test(t));
+  if (trouve.length) {
+    // Chercher la ligne "Concerne : ..." dans les 8 lignes suivantes
+    for (let off = 1; off <= 8; off++) {
+      const t = texteDroit(trouve[0].index + off);
+      if (!t) continue;
+      const m = t.match(/^Concerne\s*:\s*(.+)$/i);
+      if (m) return nettoyerNom(m[1]);
+    }
+  }
+
+  // Cas 2 : "Aux parents de" → ligne suivante en zone droite = Nom Prénom
+  trouve = lignesDansZoneDroite(t => /^Aux parents de$/i.test(t));
+  if (trouve.length) {
+    // Chercher la première ligne non vide après
+    for (let off = 1; off <= 5; off++) {
+      const t = texteDroit(trouve[0].index + off);
+      if (t) return nettoyerNom(t);
+    }
+  }
+
+  // Cas 3 : page sans destinataire (juste "Nom Prénom" en zone droite, sans préambule)
+  // La 1ère ligne de la zone droite qui ressemble à un nom (2-4 mots avec majuscules)
+  for (let i = 0; i < lignes.length; i++) {
+    const t = texteDroit(i);
+    if (!t) continue;
+    // Ignorer les en-têtes habituels
+    if (/REPUBLIQUE|Département|Enseignement|Centre|Route|T[ée]l|Fax|Aux|Monsieur|Madame/i.test(t)) continue;
+    // Vérifier que ça ressemble à un nom : 2-4 mots, chacun commence par majuscule
+    const mots = t.split(/\s+/);
+    if (mots.length >= 2 && mots.length <= 5 && mots.every(m => /^[A-ZÀ-Ü]/.test(m))) {
+      // Vérifier qu'il n'y a pas de mot d'adresse
+      if (!/^(Rue|Avenue|Chemin|Route|Place|Boulevard|Impasse|All[ée]e|Quai|Sentier|Esplanade|Square|Cours|Voie|sans|Chemin|0+|[0-9])/i.test(mots[0])) {
+        return nettoyerNom(t);
+      }
+    }
+  }
+
+  return null;
+}
+
+// Nettoie : trim, retire mots d'adresse éventuels collés
+function nettoyerNom(s) {
+  s = s.trim();
+  // Retirer tout après un mot d'adresse
+  const m = s.match(/^(.+?)\s+(Rue|Avenue|Chemin|Route|Place|Boulevard|Impasse|All[ée]e|Quai|Sentier|Esplanade|Square|Cours|Voie|sans)\b/i);
+  if (m) s = m[1];
+  return s.trim();
+}
+
+// Trouve l'élève correspondant dans la DB (recherche tolérante)
+function chercherEleveCorrespondant(nomPDF, prenomPDF) {
+  const normalize = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');
+  const nomN = normalize(nomPDF);
+  const prenomN = normalize(prenomPDF);
+  for (const e of db.eleves) {
+    const dbNom = normalize(e.nom);
+    const dbPrenom = normalize(e.prenom);
+    if (dbNom === nomN && dbPrenom === prenomN) return e;
+    // Cas où le nom complet du PDF contient nom+prénom inversés
+    if (dbNom === prenomN && dbPrenom === nomN) return e;
+    // Correspondance partielle si l'un contient l'autre
+    if (dbNom.includes(nomN) && dbPrenom.includes(prenomN)) return e;
+  }
+  return null;
+}
+
+function afficherListeMemo() {
+  document.getElementById('memo-loading').style.display = 'none';
+  const div = document.getElementById('memo-content');
+  div.style.display = 'block';
+
+  let manquants = [];
+  let prets = [];
+  for (const el of memoData.eleves) {
+    const eleve = chercherEleveCorrespondant(el.nom, el.prenom);
+    if (!eleve) {
+      manquants.push(el);
+    } else {
+      prets.push({memo: el, eleve});
+    }
+  }
+
+  let html = '';
+  if (manquants.length) {
+    html += `<div style="background:var(--amber-light);border:1px solid var(--amber);color:var(--amber-text);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:6px">⚠ ${manquants.length} élève(s) du PDF non trouvé(s) dans l'application :</div>
+      <ul style="margin:0;padding-left:18px;font-size:13px">${manquants.map(m=>`<li>${m.nomComplet} (pages ${m.pages.join(', ')})</li>`).join('')}</ul>
+      <div style="font-size:12px;margin-top:6px">Créez ces élèves dans l'app pour pouvoir leur envoyer le relevé.</div>
+    </div>`;
+  }
+
+  if (!prets.length) {
+    html += `<div style="text-align:center;padding:20px;color:var(--text2)">Aucun élève à traiter.</div>`;
+    div.innerHTML = html;
+    return;
+  }
+
+  html += `<div style="font-size:13px;color:var(--text2);margin-bottom:12px">${prets.length} élève(s) prêts. Cliquez sur "Envoyer" pour chaque élève — le PDF se télécharge et l'app Mail s'ouvre avec le message pré-rempli. Joignez ensuite le PDF téléchargé.</div>`;
+
+  html += '<div style="display:flex;flex-direction:column;gap:8px">';
+  for (let i = 0; i < prets.length; i++) {
+    const {memo, eleve} = prets[i];
+    const emailsUniques = extraireEmailsParents(eleve);
+
+    html += `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;background:var(--surface)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="avatar">${initials(eleve)}</div>
+        <div style="flex:1">
+          <div style="font-weight:600">${eleve.prenom} ${eleve.nom}</div>
+          <div style="font-size:12px;color:var(--text3)">${eleve.classe} · ${memo.pages.length} page(s) PDF</div>
+        </div>
+      </div>`;
+
+    if (emailsUniques.length === 0) {
+      html += `<div style="background:#FEE2E2;color:#991B1B;padding:8px;border-radius:6px;font-size:13px">Aucun email parents renseigné dans la fiche de l'élève.</div>`;
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:6px">';
+      for (let j = 0; j < emailsUniques.length; j++) {
+        const e = emailsUniques[j];
+        html += `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <span style="flex:1"><strong>Parents${e.nom?' ('+e.nom+')':''}</strong> — ${e.email}</span>
+          <button class="btn btn-sm btn-primary" onclick="envoyerMemoEleve(${i},${j})">Envoyer</button>
+        </div>`;
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+
+  // Stocker les "prets" pour usage par les boutons
+  memoData.prets = prets;
+  memoData.emailsParEleve = prets.map(p => extraireEmailsParents(p.eleve));
+
+  div.innerHTML = html;
+}
+
+// Extrait tous les emails parents (gère "a@x.com, b@y.com" séparés par virgule ou point-virgule)
+function extraireEmailsParents(eleve) {
+  const sources = [eleve.parentsEmail, eleve.contactEmail].filter(Boolean);
+  const tous = [];
+  const vus = new Set();
+  for (const s of sources) {
+    const parts = s.split(/[,;]/).map(p => p.trim()).filter(Boolean);
+    for (const p of parts) {
+      const k = p.toLowerCase();
+      if (!vus.has(k)) {
+        vus.add(k);
+        tous.push({email: p, nom: eleve.parentsNom || eleve.contactNom || ''});
+      }
+    }
+  }
+  return tous;
+}
+
+async function envoyerMemoEleve(eleveIdx, emailIdx) {
+  const pret = memoData.prets[eleveIdx];
+  const emailInfo = memoData.emailsParEleve[eleveIdx][emailIdx];
+  if (!emailInfo) return;
+
+  // Générer le PDF avec uniquement les pages de cet élève
+  try {
+    const pdfBlob = await genererPDFPourEleve(pret.memo.pages);
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    const nomFichier = `MEMO_${pret.eleve.nom}_${pret.eleve.prenom}.pdf`.replace(/\s+/g,'_');
+    a.href = url;
+    a.download = nomFichier;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    // Préparer le mailto
+    const sujet = encodeURIComponent('relevé MEMO');
+    const corps = encodeURIComponent(
+      `Bonjour,\n\n` +
+      `Veuillez trouver ci-joint le relevé MEMO de ${pret.eleve.prenom} ${pret.eleve.nom}.\n\n` +
+      `Merci de répondre à ce mail par un simple "bien reçu" pour confirmer la prise de note du document.\n\n` +
+      `Cordialement,`
+    );
+    setTimeout(() => {
+      window.location.href = `mailto:${emailInfo.email}?subject=${sujet}&body=${corps}`;
+    }, 300);
+    toast(`PDF téléchargé : ${nomFichier}`);
+  } catch(e) {
+    alert('Erreur lors de la génération du PDF : ' + e.message);
+  }
+}
+
+// Génère un PDF avec uniquement les pages indiquées du PDF source
+async function genererPDFPourEleve(pages) {
+  // Réutiliser le PDF source via pdf.js + jsPDF en mode "render canvas"
+  const pdf = await pdfjsLib.getDocument({data: memoData.pdfBytes.slice()}).promise;
+  const { jsPDF } = window.jspdf;
+  let doc = null;
+  for (let i = 0; i < pages.length; i++) {
+    const pageNum = pages[i];
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({scale: 2});
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({canvasContext: ctx, viewport}).promise;
+    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+    const orientation = viewport.width > viewport.height ? 'l' : 'p';
+    if (!doc) {
+      doc = new jsPDF({orientation, unit:'pt', format:[viewport.width, viewport.height]});
+    } else {
+      doc.addPage([viewport.width, viewport.height], orientation);
+    }
+    doc.addImage(imgData, 'JPEG', 0, 0, viewport.width, viewport.height);
+  }
+  return doc.output('blob');
+}
+
+function quickAbsence(id) {
+  currentEleveId = id;
+  openModal('modal-add-absence');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const absDocType = document.getElementById('abs-doc-type');
+  if (absDocType) absDocType.addEventListener('change', function() {
+    document.getElementById('abs-doc-file-group').style.display = this.value ? 'block' : 'none';
+  });
+  const statutDocType = document.getElementById('statut-doc-type');
+  if (statutDocType) statutDocType.addEventListener('change', function() {
+    document.getElementById('statut-doc-file-group').style.display = this.value ? 'block' : 'none';
+  });
+});
+load();
+initDemo();
+renderAll();
+</script>
+<!-- Bibliothèques PDF (chargées via CDN, mises en cache par le service worker pour offline) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+</script>
+<script>
+// Service Worker — fichier sw.js réel, requis pour hors-ligne sur GitHub Pages
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
