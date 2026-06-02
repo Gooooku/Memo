@@ -634,14 +634,22 @@
         <button onclick="document.getElementById('import-input').click()" title="Restaurer les données" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--blue)">
           <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M19 12v7H5v-7H3v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2zm-7-7.67L9.41 6.92 8 5.5l5-5 5 5-1.41 1.42L13 4.33V14h-2V4.33z"/></svg></span>
         </button>
-        <button onclick="document.getElementById('memo-pdf-input').click()" title="Importer relevé MEMO PDF et envoyer aux familles" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--red)">
+        <button onclick="document.getElementById('memo-pdf-input').click()" title="Importer relevé MEMO PDF Parents et envoyer aux familles" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--red)">
           <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span>
+        </button>
+        <button onclick="document.getElementById('memo-patron-pdf-input').click()" title="Importer relevé MEMO PDF Patron et envoyer aux entreprises" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#EA580C">
+          <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M10 16v-1H3.01L3 19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4h-7v1h-4zm10-9h-4.01V5l-2-2h-4l-2 2v2H4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h6v-2h4v2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-6 0h-4V5h4v2z"/></svg></span>
         </button>
         <button onclick="document.getElementById('csv-eleves-input').click()" title="Importer liste d'élèves (CSV depuis Google Sheets)" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#16A34A">
           <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg></span>
         </button>
+        <button onclick="document.getElementById('mdc-xlsx-input').click()" title="Importer MDC CFC depuis fichier Excel (Liste élèves MP)" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#7C3AED">
+          <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
+        </button>
         <input type="file" id="memo-pdf-input" accept="application/pdf" style="display:none" onchange="importerMemoPDF(this)">
+        <input type="file" id="memo-patron-pdf-input" accept="application/pdf" style="display:none" onchange="importerMemoPatronPDF(this)">
         <input type="file" id="csv-eleves-input" accept=".csv,text/csv" style="display:none" onchange="importerCSVEleves(this)">
+        <input type="file" id="mdc-xlsx-input" accept=".xlsx,.xls" style="display:none" onchange="importerMDCXlsx(this)">
         <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(this)">
       </div>
     </div>
@@ -801,6 +809,8 @@
       <div class="form-group"><label>Nom</label><input id="el-patron-nom" placeholder="Nom du patron"></div>
       <div class="form-group"><label>E-mail</label><input type="email" id="el-patron-email" placeholder="patron@exemple.com"></div>
       <div class="form-group"><label>Téléphone</label><input type="tel" id="el-patron-tel" placeholder="+32 470 00 00 00"></div>
+      <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px">Maître de classe CFC</div>
+      <div class="form-group"><label>Nom</label><input id="el-mdc-cfc" placeholder="Ex : FRANCOIS REMY"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-add-eleve')">Annuler</button>
@@ -909,11 +919,11 @@
   </div>
 </div>
 
-<!-- MODAL MEMO PDF — validation envois -->
+<!-- MODAL MEMO PDF Parents — validation envois -->
 <div class="modal-overlay" id="modal-memo">
   <div class="modal" style="max-width:720px;max-height:90vh;display:flex;flex-direction:column">
     <div class="modal-header">
-      <h3><span class="ico" style="color:var(--red)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span> Envoi des relevés MEMO</h3>
+      <h3><span class="ico" style="color:var(--red)"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg></span> Envoi des relevés MEMO — Parents</h3>
       <button class="modal-close" onclick="closeModal('modal-memo')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
     </div>
     <div class="modal-body" id="memo-body" style="flex:1;overflow-y:auto">
@@ -924,6 +934,25 @@
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-memo')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MEMO PDF Patron — validation envois -->
+<div class="modal-overlay" id="modal-memo-patron">
+  <div class="modal" style="max-width:720px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h3><span class="ico" style="color:#EA580C"><svg viewBox="0 0 24 24"><path d="M10 16v-1H3.01L3 19a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4h-7v1h-4zm10-9h-4.01V5l-2-2h-4l-2 2v2H4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h6v-2h4v2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zm-6 0h-4V5h4v2z"/></svg></span> Envoi des relevés MEMO — Patrons</h3>
+      <button class="modal-close" onclick="closeModal('modal-memo-patron')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body" id="memo-patron-body" style="flex:1;overflow-y:auto">
+      <div id="memo-patron-loading" style="text-align:center;padding:40px">
+        <div style="font-size:14px;color:var(--text2)">Analyse du PDF en cours...</div>
+      </div>
+      <div id="memo-patron-content" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-memo-patron')">Fermer</button>
     </div>
   </div>
 </div>
@@ -941,6 +970,26 @@
     <div class="modal-footer" id="csv-footer">
       <button class="btn" onclick="closeModal('modal-csv-eleves')">Annuler</button>
       <button class="btn btn-primary" id="csv-btn-importer" onclick="validerImportCSV()" style="display:none"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Tout importer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT MDC CFC depuis Excel -->
+<div class="modal-overlay" id="modal-mdc-xlsx">
+  <div class="modal" style="max-width:680px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h3><span class="ico" style="color:#7C3AED"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span> Import MDC CFC</h3>
+      <button class="modal-close" onclick="closeModal('modal-mdc-xlsx')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body" id="mdc-body" style="flex:1;overflow-y:auto">
+      <div id="mdc-loading" style="text-align:center;padding:40px">
+        <div style="font-size:14px;color:var(--text2)">Lecture du fichier Excel...</div>
+      </div>
+      <div id="mdc-content" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-mdc-xlsx')">Annuler</button>
+      <button class="btn btn-primary" id="mdc-btn-importer" onclick="validerImportMDC()" style="display:none"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Tout mettre à jour</button>
     </div>
   </div>
 </div>
@@ -1208,7 +1257,7 @@ function openModal(id) {
     document.getElementById('el-edit-id').value = '';
     document.getElementById('modal-eleve-titre-txt').textContent = 'Ajouter un élève';
     document.getElementById('modal-eleve-btn-txt').textContent = 'Ajouter';
-    ['el-prenom','el-nom','el-email','el-tel','el-parents-nom','el-parents-email','el-parents-tel','el-patron-nom','el-patron-email','el-patron-tel'].forEach(i => { const el=document.getElementById(i); if(el) el.value=''; });
+    ['el-prenom','el-nom','el-email','el-tel','el-parents-nom','el-parents-email','el-parents-tel','el-patron-nom','el-patron-email','el-patron-tel','el-mdc-cfc'].forEach(i => { const el=document.getElementById(i); if(el) el.value=''; });
     populateClasseSelect('');
   }
   document.getElementById(id).classList.add('open');
@@ -1426,15 +1475,16 @@ function saveEleve() {
   const patronNom    = document.getElementById('el-patron-nom').value.trim();
   const patronEmail  = document.getElementById('el-patron-email').value.trim();
   const patronTel    = document.getElementById('el-patron-tel').value.trim();
+  const mdcCFC       = document.getElementById('el-mdc-cfc').value.trim();
   if (!prenom || !nom) { alert('Prénom et nom obligatoires.'); return; }
   if (!classe) { alert('Veuillez choisir une classe.'); return; }
 
   if (editId) {
     const e = db.eleves.find(x=>x.id===editId);
-    if (e) Object.assign(e, {prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel});
+    if (e) Object.assign(e, {prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC});
     toast('Élève modifié ✓');
   } else {
-    db.eleves.push({id:nextId(db.eleves), prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel});
+    db.eleves.push({id:nextId(db.eleves), prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC});
     toast('Élève ajouté ✓');
   }
   save(); closeModal('modal-add-eleve'); renderAll();
@@ -1455,6 +1505,7 @@ function editEleve(id) {
   document.getElementById('el-patron-nom').value = e.patronNom || '';
   document.getElementById('el-patron-email').value = e.patronEmail || '';
   document.getElementById('el-patron-tel').value = e.patronTel || '';
+  document.getElementById('el-mdc-cfc').value = e.mdcCFC || '';
   populateClasseSelect(e.classe || '');
   document.getElementById('modal-add-eleve').classList.add('open');
 }
@@ -1763,7 +1814,11 @@ function showDetail(id) {
   document.getElementById('detail-titre').innerHTML =
     `<div class="eleve-cell"><div class="avatar" style="${alerte?'background:var(--red-light);color:var(--red-text)':''}">${initials(e)}</div>${e.prenom} ${e.nom} <span class="badge badge-gray" style="margin-left:6px">${e.classe}</span>${alerte?`<span class="badge badge-red" style="margin-left:6px"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span> ${total} pér.</span>`:''}</div>`;
 
-  let html = `<div class="detail-grid" style="grid-template-columns:repeat(4,1fr)">
+  let html = '';
+  if (e.mdcCFC) {
+    html += `<div style="background:#F3E8FF;border-left:3px solid #7C3AED;padding:8px 12px;border-radius:6px;margin-bottom:14px;font-size:13px"><strong style="color:#5B21B6">MDC CFC :</strong> <span style="color:var(--text)">${e.mdcCFC}</span></div>`;
+  }
+  html += `<div class="detail-grid" style="grid-template-columns:repeat(4,1fr)">
     <div class="detail-stat">
       <div class="val" style="color:var(--accent)">${aex}</div>
       <div class="lbl">AEX</div>
@@ -2093,19 +2148,38 @@ function nettoyerNom(s) {
   return s.trim();
 }
 
-// Trouve l'élève correspondant dans la DB (recherche tolérante)
+// Trouve l'élève correspondant dans la DB (recherche tolérante aux découpages nom/prénom)
 function chercherEleveCorrespondant(nomPDF, prenomPDF) {
   const normalize = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');
-  const nomN = normalize(nomPDF);
-  const prenomN = normalize(prenomPDF);
+  // Reconstituer le set complet de mots du PDF (nom + prénom, peu importe la coupure)
+  const motsPDF = (nomPDF + ' ' + prenomPDF).trim().split(/\s+/).filter(Boolean);
+  const motsPDFnorm = motsPDF.map(normalize).filter(Boolean);
+  const setPDF = new Set(motsPDFnorm);
+  const concatPDF = motsPDFnorm.slice().sort().join('|');
+
   for (const e of db.eleves) {
-    const dbNom = normalize(e.nom);
-    const dbPrenom = normalize(e.prenom);
-    if (dbNom === nomN && dbPrenom === prenomN) return e;
-    // Cas où le nom complet du PDF contient nom+prénom inversés
-    if (dbNom === prenomN && dbPrenom === nomN) return e;
-    // Correspondance partielle si l'un contient l'autre
-    if (dbNom.includes(nomN) && dbPrenom.includes(prenomN)) return e;
+    // Reconstituer le set de mots de la DB pour cet élève
+    const motsDB = (e.nom + ' ' + e.prenom).trim().split(/\s+/).filter(Boolean);
+    const motsDBnorm = motsDB.map(normalize).filter(Boolean);
+    if (!motsDBnorm.length) continue;
+
+    const concatDB = motsDBnorm.slice().sort().join('|');
+
+    // Cas 1 : exact match (tous les mots sont les mêmes, peu importe l'ordre / la coupure)
+    if (concatDB === concatPDF) return e;
+
+    // Cas 2 : tous les mots de la DB sont dans le PDF (la DB peut être plus courte)
+    if (motsDBnorm.every(m => setPDF.has(m))) return e;
+
+    // Cas 3 : tous les mots du PDF sont dans la DB (le PDF peut être plus court)
+    const setDB = new Set(motsDBnorm);
+    if (motsPDFnorm.every(m => setDB.has(m))) return e;
+
+    // Cas 4 : intersection suffisante (au moins 2 mots communs et la majorité matche)
+    const commun = motsPDFnorm.filter(m => setDB.has(m));
+    if (commun.length >= 2 && commun.length >= motsPDFnorm.length - 1 && commun.length >= motsDBnorm.length - 1) {
+      return e;
+    }
   }
   return null;
 }
@@ -2257,6 +2331,251 @@ async function genererPDFPourEleve(pages) {
     doc.addImage(imgData, 'JPEG', 0, 0, viewport.width, viewport.height);
   }
   return doc.output('blob');
+}
+
+/* ========== IMPORT MEMO PATRON PDF ========== */
+let memoPatronData = null; // {pdfBytes, groupes: [{nomEleve, eleve, pages: [{num, patron}], sansPatron}]}
+
+async function importerMemoPatronPDF(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  document.getElementById('memo-patron-loading').style.display = 'block';
+  document.getElementById('memo-patron-content').style.display = 'none';
+  document.getElementById('modal-memo-patron').classList.add('open');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfBytes = new Uint8Array(arrayBuffer);
+    const pdf = await pdfjsLib.getDocument({data: pdfBytes.slice()}).promise;
+    const groupes = await analyserMemoPatronPDF(pdf);
+    memoPatronData = {pdfBytes, groupes};
+    afficherListeMemoPatron();
+  } catch (e) {
+    document.getElementById('memo-patron-loading').innerHTML =
+      `<div style="color:var(--red);padding:20px">Erreur lors de la lecture du PDF : ${e.message}</div>`;
+  }
+}
+
+async function analyserMemoPatronPDF(pdf) {
+  const pagesInfo = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({scale: 1});
+    const textContent = await page.getTextContent();
+    const info = extrairePatronEleve(textContent.items, viewport.width);
+    pagesInfo.push({page: i, patron: info.patron, nomEleve: info.eleve});
+  }
+  // Grouper pages consécutives avec le même élève
+  const groupes = [];
+  let courant = null;
+  for (const p of pagesInfo) {
+    if (!p.nomEleve) {
+      if (courant) courant.pages.push({num: p.page, patron: p.patron || ''});
+      continue;
+    }
+    if (courant && courant.nomEleve === p.nomEleve) {
+      courant.pages.push({num: p.page, patron: p.patron || ''});
+    } else {
+      courant = {nomEleve: p.nomEleve, pages: [{num: p.page, patron: p.patron || ''}]};
+      groupes.push(courant);
+    }
+  }
+  // Marquer "sans patron" si tous les patrons d'un groupe sont CFP/École
+  const REGEX_ECOLE = /CFP\s*Technique|Centre\s*de\s*formation\s*professionnelle/i;
+  for (const g of groupes) {
+    g.sansPatron = g.pages.every(p => REGEX_ECOLE.test(p.patron || ''));
+    // Découper nom/prénom
+    const parts = g.nomEleve.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      g.prenom = parts[parts.length - 1];
+      g.nom = parts.slice(0, -1).join(' ');
+    } else {
+      g.nom = g.nomEleve; g.prenom = '';
+    }
+  }
+  return groupes;
+}
+
+// Extrait "Patron" (ligne du haut) et "Nom élève" (après Concerne :) en zone droite
+function extrairePatronEleve(items, pageWidth) {
+  const SEUIL_DROITE = pageWidth ? pageWidth * 0.5 : 300;
+  const elements = items.filter(it => it.str && it.str.trim()).map(it => ({
+    text: it.str.trim(),
+    x: it.transform[4],
+    y: it.transform[5]
+  }));
+  const lignes = [];
+  for (const el of elements) {
+    let ligne = lignes.find(l => Math.abs(l.y - el.y) < 3);
+    if (!ligne) { ligne = {y: el.y, items: []}; lignes.push(ligne); }
+    ligne.items.push(el);
+  }
+  lignes.forEach(l => l.items.sort((a,b) => a.x - b.x));
+  lignes.sort((a,b) => b.y - a.y); // haut → bas en pdf.js (y plus grand = plus haut)
+
+  function texteDroit(idx) {
+    if (idx < 0 || idx >= lignes.length) return '';
+    return lignes[idx].items.filter(it => it.x > SEUIL_DROITE).map(i => i.text).join(' ').trim();
+  }
+
+  // Trouver "Au resp. de la formation en apprentissage"
+  let idxResp = -1;
+  for (let i = 0; i < lignes.length; i++) {
+    const t = texteDroit(i);
+    if (/Au\s+resp/i.test(t) && /formation/i.test(t) && /apprentissage/i.test(t)) {
+      idxResp = i; break;
+    }
+  }
+  if (idxResp < 0) return {patron: null, eleve: null};
+
+  // Nom du patron = première ligne non vide au-dessus (en zone droite)
+  let patron = null;
+  for (let off = 1; off <= 4; off++) {
+    const t = texteDroit(idxResp - off);
+    if (t) { patron = t; break; }
+  }
+
+  // Nom de l'élève = après "Concerne :" dans les lignes suivantes
+  let eleve = null;
+  for (let off = 1; off <= 6; off++) {
+    const t = texteDroit(idxResp + off);
+    if (!t) continue;
+    const m = t.match(/^Concerne\s*:\s*(.+)$/i);
+    if (m) {
+      eleve = nettoyerNomEleve(m[1]);
+      break;
+    }
+  }
+  return {patron, eleve};
+}
+
+function nettoyerNomEleve(s) {
+  s = s.trim();
+  // Retirer adresse éventuelle (ROUTE, RUE, etc., en majuscules dans le PDF Patron)
+  const m = s.match(/^(.+?)\s+(ROUTE|RUE|AVENUE|CHEMIN|PLACE|BOULEVARD|IMPASSE|ALL[ÉE]E|QUAI|LIMMATSTRASSE|R\.|[0-9])/i);
+  if (m) s = m[1];
+  return s.trim();
+}
+
+function afficherListeMemoPatron() {
+  document.getElementById('memo-patron-loading').style.display = 'none';
+  const div = document.getElementById('memo-patron-content');
+  div.style.display = 'block';
+
+  const manquants = [];   // dans PDF mais pas dans app
+  const sansPatron = [];  // dans PDF + dans app, mais c'est l'école (CFP)
+  const prets = [];       // dans PDF + dans app + avec un vrai patron
+
+  for (const g of memoPatronData.groupes) {
+    const eleve = chercherEleveCorrespondant(g.nom, g.prenom);
+    if (!eleve) { manquants.push(g); continue; }
+    if (g.sansPatron) { sansPatron.push({groupe: g, eleve}); continue; }
+    prets.push({groupe: g, eleve});
+  }
+
+  let html = '';
+
+  // Bandeau orange : élèves manquants
+  if (manquants.length) {
+    html += `<div style="background:#FEF3C7;border:1px solid #FCD34D;color:#78350F;border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:6px">⚠️ ${manquants.length} élève(s) du PDF non trouvé(s) dans l'application :</div>
+      <ul style="margin:4px 0 0 18px;padding:0;font-size:13px">
+        ${manquants.map(m => `<li>${m.nomEleve} (pages ${m.pages.map(p=>p.num).join(', ')})</li>`).join('')}
+      </ul>
+      <div style="font-size:12px;margin-top:6px;font-style:italic">Créez ces élèves dans l'app pour pouvoir leur envoyer le relevé.</div>
+    </div>`;
+  }
+
+  // Bandeau gris : élèves sans patron (CFP)
+  if (sansPatron.length) {
+    html += `<div style="background:var(--bg);border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:6px">${sansPatron.length} élève(s) sans patron (école au CFP) :</div>
+      <div style="font-size:13px">${sansPatron.map(s => `${s.eleve.prenom} ${s.eleve.nom}`).join(' · ')}</div>
+      <div style="font-size:12px;margin-top:6px;font-style:italic">Aucun mail patron à envoyer pour ces élèves.</div>
+    </div>`;
+  }
+
+  if (!prets.length) {
+    if (!manquants.length && !sansPatron.length) {
+      html += `<div style="text-align:center;padding:30px;color:var(--text2)">Aucun élève détecté dans le PDF.</div>`;
+    }
+    div.innerHTML = html;
+    return;
+  }
+
+  html += `<div style="font-size:13px;color:var(--text2);margin-bottom:12px"><strong>${prets.length} élève(s) avec patron</strong>. Cliquez sur "Envoyer" pour chaque élève — le PDF se télécharge et l'app Mail s'ouvre avec le message pré-rempli. Joignez ensuite le PDF téléchargé.</div>`;
+  html += '<div style="display:flex;flex-direction:column;gap:8px">';
+  for (let i = 0; i < prets.length; i++) {
+    const {groupe, eleve} = prets[i];
+    const patronEmail = (eleve.patronEmail || '').trim();
+    const emailsListe = patronEmail.split(/[,;]/).map(e => e.trim()).filter(Boolean);
+    // Dédoublonner
+    const setEmails = new Set();
+    const emailsUniques = [];
+    for (const e of emailsListe) {
+      const k = e.toLowerCase();
+      if (!setEmails.has(k)) { setEmails.add(k); emailsUniques.push(e); }
+    }
+
+    html += `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;background:var(--surface)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="avatar">${initials(eleve)}</div>
+        <div style="flex:1">
+          <div style="font-weight:600">${eleve.prenom} ${eleve.nom}</div>
+          <div style="font-size:12px;color:var(--text3)">${eleve.classe} · ${groupe.pages.length} page(s) PDF · Patron(s) : ${groupe.pages.map(p=>p.patron).join(' / ')}</div>
+        </div>
+      </div>`;
+
+    if (!emailsUniques.length) {
+      html += `<div style="background:#FEE2E2;color:#991B1B;padding:8px;border-radius:6px;font-size:13px">Aucun email patron renseigné dans la fiche de l'élève.</div>`;
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:6px">';
+      for (let j = 0; j < emailsUniques.length; j++) {
+        const e = emailsUniques[j];
+        html += `<div style="display:flex;align-items:center;gap:8px;font-size:13px">
+          <span style="flex:1"><strong>Patron${eleve.patronNom?' ('+eleve.patronNom+')':''}</strong> — ${e}</span>
+          <button class="btn btn-sm btn-primary" onclick="envoyerMemoPatronEleve(${i},${j})">Envoyer</button>
+        </div>`;
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+
+  memoPatronData.prets = prets;
+  memoPatronData.emailsParEleve = prets.map(p => {
+    const patronEmail = (p.eleve.patronEmail || '').trim();
+    const liste = patronEmail.split(/[,;]/).map(e => e.trim()).filter(Boolean);
+    const set = new Set(); const uniq = [];
+    for (const e of liste) { const k = e.toLowerCase(); if (!set.has(k)) { set.add(k); uniq.push(e); } }
+    return uniq;
+  });
+
+  div.innerHTML = html;
+}
+
+async function envoyerMemoPatronEleve(eleveIdx, emailIdx) {
+  const pret = memoPatronData.prets[eleveIdx];
+  const email = memoPatronData.emailsParEleve[eleveIdx][emailIdx];
+  if (!pret || !email) return;
+  try {
+    const pages = pret.groupe.pages.map(p => p.num);
+    const pdfBlob = await genererPDFPourEleve(pages);
+    const filename = `MEMO_Patron_${pret.eleve.nom}_${pret.eleve.prenom}`.replace(/[^A-Za-z0-9_]/g,'_') + '.pdf';
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+    const sujet = 'relevé MEMO';
+    const corps = `Bonjour,\n\nVeuillez trouver ci-joint le relevé MEMO de ${pret.eleve.prenom} ${pret.eleve.nom}.\n\nMerci de répondre à ce mail par un simple "bien reçu" pour confirmer la prise de note du document.\n\nCordialement,`;
+    const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
+    window.location.href = mailto;
+  } catch (e) {
+    alert('Erreur lors de la génération du PDF : ' + e.message);
+  }
 }
 
 /* ========== IMPORT CSV ÉLÈVES ========== */
@@ -2469,6 +2788,205 @@ function validerImportCSV() {
   csvImportData = null;
 }
 
+/* ========== IMPORT MDC CFC (XLSX) ========== */
+let mdcImportData = null;
+
+function importerMDCXlsx(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  if (typeof XLSX === 'undefined') {
+    alert('La bibliothèque XLSX n\'est pas chargée. Vérifiez votre connexion internet et rechargez la page.');
+    return;
+  }
+
+  document.getElementById('mdc-loading').style.display = 'block';
+  document.getElementById('mdc-content').style.display = 'none';
+  document.getElementById('mdc-btn-importer').style.display = 'none';
+  document.getElementById('modal-mdc-xlsx').classList.add('open');
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      analyserXlsxMDC(wb);
+    } catch (err) {
+      document.getElementById('mdc-loading').style.display = 'none';
+      document.getElementById('mdc-content').style.display = 'block';
+      document.getElementById('mdc-content').innerHTML =
+        `<div style="color:var(--red);padding:20px">Erreur de lecture du fichier Excel : ${err.message}</div>`;
+    }
+  };
+  reader.onerror = () => alert('Impossible de lire le fichier.');
+  reader.readAsArrayBuffer(file);
+}
+
+function analyserXlsxMDC(wb) {
+  // Trouver la feuille pertinente : priorité à "Eleves MP", sinon la 1re feuille qui contient Nom + Prenom + MDC CFC
+  let sheetName = null;
+  if (wb.SheetNames.includes('Eleves MP')) sheetName = 'Eleves MP';
+  if (!sheetName) {
+    for (const sn of wb.SheetNames) {
+      const sh = wb.Sheets[sn];
+      const rows = XLSX.utils.sheet_to_json(sh, {header:1, defval:''});
+      if (!rows.length) continue;
+      const headers = (rows[0] || []).map(c => (c||'').toString().toLowerCase().trim());
+      if (headers.includes('nom') && (headers.includes('prenom') || headers.includes('prénom')) && headers.some(h => h.includes('mdc') && h.includes('cfc'))) {
+        sheetName = sn; break;
+      }
+    }
+  }
+  if (!sheetName) {
+    document.getElementById('mdc-loading').style.display = 'none';
+    document.getElementById('mdc-content').style.display = 'block';
+    document.getElementById('mdc-content').innerHTML =
+      `<div style="color:var(--red);padding:20px">Impossible de trouver une feuille avec les colonnes Nom, Prénom et MDC CFC. Vérifiez votre fichier.</div>`;
+    return;
+  }
+  const sh = wb.Sheets[sheetName];
+  const rows = XLSX.utils.sheet_to_json(sh, {header:1, defval:''});
+
+  // Identifier l'index des colonnes Nom, Prenom, MDC CFC
+  let idxHeader = -1;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const cells = (rows[i] || []).map(c => (c||'').toString().toLowerCase().trim());
+    if (cells.includes('nom') && (cells.includes('prenom') || cells.includes('prénom')) && cells.some(h => h.includes('mdc') && h.includes('cfc'))) {
+      idxHeader = i; break;
+    }
+  }
+  if (idxHeader < 0) {
+    document.getElementById('mdc-loading').style.display = 'none';
+    document.getElementById('mdc-content').style.display = 'block';
+    document.getElementById('mdc-content').innerHTML =
+      `<div style="color:var(--red);padding:20px">Ligne d'en-têtes introuvable dans la feuille "${sheetName}".</div>`;
+    return;
+  }
+  const headers = (rows[idxHeader] || []).map(c => (c||'').toString().toLowerCase().trim());
+  const iNom = headers.findIndex(h => h === 'nom');
+  const iPrenom = headers.findIndex(h => h === 'prenom' || h === 'prénom');
+  const iMDC = headers.findIndex(h => h.includes('mdc') && h.includes('cfc') && !h.includes('genre') && !h.includes('titre'));
+
+  if (iNom < 0 || iPrenom < 0 || iMDC < 0) {
+    document.getElementById('mdc-loading').style.display = 'none';
+    document.getElementById('mdc-content').style.display = 'block';
+    document.getElementById('mdc-content').innerHTML =
+      `<div style="color:var(--red);padding:20px">Colonnes manquantes (Nom: ${iNom}, Prénom: ${iPrenom}, MDC CFC: ${iMDC}).</div>`;
+    return;
+  }
+
+  // Extraire les lignes valides
+  const lignes = [];
+  for (let i = idxHeader + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const nom = (r[iNom] || '').toString().trim();
+    const prenom = (r[iPrenom] || '').toString().trim();
+    const mdc = (r[iMDC] || '').toString().trim();
+    if (!nom || !prenom) continue;
+    lignes.push({nom, prenom, mdcCFC: mdc});
+  }
+
+  // Pour chaque élève de la DB, chercher une correspondance dans les lignes
+  const correspondances = [];
+  const elevesNonTrouves = [];
+
+  for (const e of db.eleves) {
+    const ligne = chercherLigneXlsx(e, lignes);
+    if (ligne) {
+      const nouveauMDC = ligne.mdcCFC;
+      const ancienMDC = (e.mdcCFC || '').trim();
+      if (nouveauMDC && nouveauMDC !== ancienMDC) {
+        correspondances.push({eleve: e, ancienMDC, nouveauMDC});
+      }
+    } else {
+      elevesNonTrouves.push(e);
+    }
+  }
+
+  mdcImportData = {correspondances, elevesNonTrouves, totalLignesXlsx: lignes.length, sheetName};
+  afficherListeMDC();
+}
+
+// Recherche tolérante d'une ligne xlsx pour un élève donné
+function chercherLigneXlsx(eleve, lignes) {
+  const normalize = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z]/g,'');
+  const motsDB = (eleve.nom + ' ' + eleve.prenom).split(/\s+/).map(normalize).filter(Boolean);
+  if (!motsDB.length) return null;
+  const setDB = new Set(motsDB);
+
+  for (const ligne of lignes) {
+    const motsLn = (ligne.nom + ' ' + ligne.prenom).split(/\s+/).map(normalize).filter(Boolean);
+    if (!motsLn.length) continue;
+    const setLn = new Set(motsLn);
+    const concatDB = motsDB.slice().sort().join('|');
+    const concatLn = motsLn.slice().sort().join('|');
+    if (concatDB === concatLn) return ligne;
+    if (motsDB.every(m => setLn.has(m))) return ligne;
+    if (motsLn.every(m => setDB.has(m))) return ligne;
+    const commun = motsDB.filter(m => setLn.has(m));
+    if (commun.length >= 2 && commun.length >= motsDB.length - 1 && commun.length >= motsLn.length - 1) return ligne;
+  }
+  return null;
+}
+
+function afficherListeMDC() {
+  document.getElementById('mdc-loading').style.display = 'none';
+  const div = document.getElementById('mdc-content');
+  div.style.display = 'block';
+
+  const {correspondances, elevesNonTrouves, totalLignesXlsx, sheetName} = mdcImportData;
+
+  let html = `<div style="font-size:13px;color:var(--text2);margin-bottom:12px">Feuille analysée : <strong>${sheetName}</strong> (${totalLignesXlsx} lignes).</div>`;
+
+  if (elevesNonTrouves.length) {
+    html += `<div style="background:#FEF3C7;border:1px solid #FCD34D;color:#78350F;border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:6px">⚠️ ${elevesNonTrouves.length} élève(s) de l'app non trouvé(s) dans le fichier Excel :</div>
+      <div style="font-size:13px">${elevesNonTrouves.map(e => `${e.prenom} ${e.nom}`).join(' · ')}</div>
+      <div style="font-size:12px;margin-top:6px;font-style:italic">Leur MDC CFC ne sera pas modifié.</div>
+    </div>`;
+  }
+
+  if (!correspondances.length) {
+    html += `<div style="text-align:center;padding:20px;color:var(--text2)">Aucune mise à jour à effectuer. Tous les MDC CFC sont déjà à jour, ou aucune correspondance n'a été trouvée.</div>`;
+    div.innerHTML = html;
+    return;
+  }
+
+  html += `<div style="font-size:13px;color:var(--text2);margin-bottom:8px"><strong>${correspondances.length} élève(s)</strong> dont le MDC CFC sera mis à jour :</div>`;
+  html += `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden">
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead style="background:var(--bg)"><tr>
+        <th style="text-align:left;padding:8px 12px;font-weight:600">Élève</th>
+        <th style="text-align:left;padding:8px 12px;font-weight:600">MDC CFC actuel</th>
+        <th style="text-align:left;padding:8px 12px;font-weight:600">Nouveau MDC CFC</th>
+      </tr></thead>
+      <tbody>`;
+  for (const c of correspondances) {
+    html += `<tr style="border-top:1px solid var(--border)">
+      <td style="padding:6px 12px">${c.eleve.prenom} ${c.eleve.nom} <span style="font-size:11px;color:var(--text3)">(${c.eleve.classe})</span></td>
+      <td style="padding:6px 12px;color:var(--text3)">${c.ancienMDC || '—'}</td>
+      <td style="padding:6px 12px;color:#5B21B6;font-weight:500">${c.nouveauMDC}</td>
+    </tr>`;
+  }
+  html += '</tbody></table></div>';
+
+  div.innerHTML = html;
+  document.getElementById('mdc-btn-importer').style.display = 'inline-flex';
+}
+
+function validerImportMDC() {
+  if (!mdcImportData || !mdcImportData.correspondances.length) return;
+  for (const c of mdcImportData.correspondances) {
+    c.eleve.mdcCFC = c.nouveauMDC;
+  }
+  save();
+  closeModal('modal-mdc-xlsx');
+  renderAll();
+  toast(`${mdcImportData.correspondances.length} MDC CFC mis à jour ✓`);
+  mdcImportData = null;
+}
+
 function quickAbsence(id) {
   currentEleveId = id;
   openModal('modal-add-absence');
@@ -2491,6 +3009,7 @@ renderAll();
 <!-- Bibliothèques PDF (chargées via CDN, mises en cache par le service worker pour offline) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
