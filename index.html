@@ -582,6 +582,9 @@
       <button class="nav-btn" id="dnav-classes" onclick="switchTab('classes',this,'dnav-classes')">
         <span class="ico" style="font-size:16px"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 18H6V4h2v8l2.5-1.5L13 12V4h5v16z"/></svg></span><span>Classes</span>
       </button>
+      <button class="nav-btn" id="dnav-mdc" onclick="switchTab('mdc',this,'dnav-mdc')">
+        <span class="ico" style="font-size:16px;color:#7C3AED"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span><span>MDC CFC</span>
+      </button>
     </div>
     <div style="padding:16px;border-top:1px solid var(--border)">
       <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="openModal('modal-add-eleve')">
@@ -778,6 +781,14 @@
           </button>
         </div>
         <div id="liste-classes"></div>
+      </div>
+
+      <!-- MDC CFC -->
+      <div id="tab-mdc" class="tab">
+        <div style="background:#F3E8FF;border-left:3px solid #7C3AED;padding:10px 14px;border-radius:6px;margin-bottom:14px;font-size:13px;color:#5B21B6">
+          <strong>Carnet d'adresses des MDC CFC.</strong> Saisissez l'email une seule fois par MDC, il sera propagé automatiquement à tous les élèves qui ont ce MDC.
+        </div>
+        <div id="liste-mdc"></div>
       </div>
 
     </div><!-- /content -->
@@ -1018,6 +1029,26 @@
   </div>
 </div>
 
+<!-- MODAL ÉDITER MDC CFC (carnet d'adresses) -->
+<div class="modal-overlay" id="modal-edit-mdc">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <h3><span class="ico" style="color:#7C3AED"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span> Modifier le MDC CFC</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-mdc')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mdc-edit-nom-original">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:14px">Les changements sont propagés automatiquement à tous les élèves de ce MDC.</div>
+      <div class="form-group"><label>Nom du MDC CFC</label><input id="mdc-edit-nom" placeholder="Ex : François Rémy"></div>
+      <div class="form-group"><label>Email du MDC CFC</label><input type="email" id="mdc-edit-email" placeholder="mdc@exemple.com"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-edit-mdc')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveMdcContact()"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL CONTACT ÉLÈVE -->
 <div class="modal-overlay" id="modal-contact">
   <div class="modal" style="max-width:420px">
@@ -1177,6 +1208,11 @@ function load() {
       if (!db.absences)  db.absences  = [];
       if (!db.retenues)  db.retenues  = [];
       if (!db.documents) db.documents = [];
+      if (!db.mdcCFCContacts) db.mdcCFCContacts = []; // [{nom, email}]
+      // Migration : reconstruire mdcCFCContacts depuis les élèves existants
+      if (db.mdcCFCContacts.length === 0 && db.eleves.some(e => e.mdcCFC)) {
+        rebuildMdcContacts();
+      }
       // Migration classes depuis les données existantes
       if (db.classes.length === 0 && db.eleves.length > 0) {
         const noms = [...new Set(db.eleves.map(e=>e.classe).filter(Boolean))];
@@ -1321,6 +1357,7 @@ function renderAll() {
   renderAbsences();
   renderRetenues();
   renderClasses();
+  renderMDC();
   updateNavBadges();
   ['classe-tag', 'classe-tag-d'].forEach(id => {
     const el = document.getElementById(id);
@@ -1506,10 +1543,26 @@ function saveEleve() {
 
   if (editId) {
     const e = db.eleves.find(x=>x.id===editId);
-    if (e) Object.assign(e, {prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC, mdcCFCEmail});
+    if (e) {
+      // Synchronisation MDC : si MDC sans email saisi, récupérer depuis carnet
+      let finalMdcEmail = mdcCFCEmail;
+      if (mdcCFC && !mdcCFCEmail) {
+        const c = findMdcContact(mdcCFC);
+        if (c && c.email) finalMdcEmail = c.email;
+      }
+      Object.assign(e, {prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC, mdcCFCEmail: finalMdcEmail});
+      // Mettre à jour le carnet d'adresses MDC (propage l'email aux autres élèves si nouveau)
+      if (mdcCFC) upsertMdcContact(mdcCFC, finalMdcEmail);
+    }
     toast('Élève modifié ✓');
   } else {
-    db.eleves.push({id:nextId(db.eleves), prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC, mdcCFCEmail});
+    let finalMdcEmail = mdcCFCEmail;
+    if (mdcCFC && !mdcCFCEmail) {
+      const c = findMdcContact(mdcCFC);
+      if (c && c.email) finalMdcEmail = c.email;
+    }
+    db.eleves.push({id:nextId(db.eleves), prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC, mdcCFCEmail: finalMdcEmail});
+    if (mdcCFC) upsertMdcContact(mdcCFC, finalMdcEmail);
     toast('Élève ajouté ✓');
   }
   save(); closeModal('modal-add-eleve'); renderAll();
@@ -1593,6 +1646,167 @@ function renderClasses() {
       </div>
     </div>`;
   }).join('');
+}
+
+/* --- MDC CFC contacts (carnet d'adresses) --- */
+
+// Normalise un nom de MDC pour comparaison (insensible casse/accents/espaces)
+function normalizeMDC(s) {
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim();
+}
+
+// Trouve une entrée du carnet d'adresses correspondant à ce nom
+function findMdcContact(nom) {
+  if (!nom) return null;
+  const n = normalizeMDC(nom);
+  return db.mdcCFCContacts.find(c => normalizeMDC(c.nom) === n) || null;
+}
+
+// Reconstruit le carnet d'adresses MDC à partir des élèves (utilisé pour migration ou réparation)
+function rebuildMdcContacts() {
+  const map = new Map();
+  for (const e of db.eleves) {
+    const nom = (e.mdcCFC || '').trim();
+    if (!nom) continue;
+    const cle = normalizeMDC(nom);
+    if (!map.has(cle)) {
+      map.set(cle, {nom, email: (e.mdcCFCEmail || '').trim()});
+    } else {
+      // Si entrée existe sans email mais cet élève en a un, le récupérer
+      const c = map.get(cle);
+      if (!c.email && e.mdcCFCEmail) c.email = e.mdcCFCEmail.trim();
+    }
+  }
+  db.mdcCFCContacts = [...map.values()].sort((a,b) => a.nom.localeCompare(b.nom));
+}
+
+// Ajoute ou met à jour une entrée dans le carnet d'adresses MDC
+// Si l'email change, propage à tous les élèves ayant ce MDC
+function upsertMdcContact(nom, email) {
+  if (!nom || !nom.trim()) return;
+  nom = nom.trim();
+  email = (email || '').trim();
+  let entry = findMdcContact(nom);
+  const oldEmail = entry ? entry.email : null;
+  if (!entry) {
+    entry = {nom, email};
+    db.mdcCFCContacts.push(entry);
+  } else {
+    entry.nom = nom;
+    if (email) entry.email = email;
+  }
+  // Propager l'email à tous les élèves ayant ce MDC
+  if (email && email !== oldEmail) {
+    const n = normalizeMDC(nom);
+    for (const e of db.eleves) {
+      if (normalizeMDC(e.mdcCFC || '') === n) {
+        e.mdcCFCEmail = email;
+      }
+    }
+  }
+}
+
+function renderMDC() {
+  const div = document.getElementById('liste-mdc');
+  if (!div) return;
+  // Compter combien d'élèves pour chaque MDC
+  const compteur = new Map();
+  for (const e of db.eleves) {
+    const cle = normalizeMDC(e.mdcCFC || '');
+    if (!cle) continue;
+    compteur.set(cle, (compteur.get(cle) || 0) + 1);
+  }
+  const contacts = (db.mdcCFCContacts || []).slice().sort((a,b) => a.nom.localeCompare(b.nom));
+  if (!contacts.length) {
+    div.innerHTML = `<div class="card"><div style="padding:32px;text-align:center;color:var(--text3)">
+      <span class="ico" style="font-size:32px;display:block;margin-bottom:10px"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
+      <p>Aucun MDC CFC enregistré.</p><p style="font-size:12px;margin-top:4px">Les MDC CFC sont créés automatiquement quand vous les saisissez dans la fiche d'un élève.</p></div></div>`;
+    return;
+  }
+  div.innerHTML = contacts.map(c => {
+    const nb = compteur.get(normalizeMDC(c.nom)) || 0;
+    const sansEmail = !c.email;
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="padding:14px 18px;display:flex;align-items:center;gap:14px">
+        <div style="width:42px;height:42px;border-radius:var(--radius);background:#F3E8FF;color:#5B21B6;display:flex;align-items:center;justify-content:center">
+          <span class="ico" style="font-size:18px"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:600">${c.nom}</div>
+          <div style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ${c.email ? `<a href="mailto:${c.email}" style="color:var(--blue);text-decoration:none">${c.email}</a>` : `<span style="color:var(--red)">⚠️ Email manquant</span>`}
+            · <span style="color:var(--text2)">${nb} élève${nb!==1?'s':''}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="editMdcContact('${encodeURIComponent(c.nom)}')">Modifier</button>
+          <button class="btn-icon danger" title="Supprimer" onclick="deleteMdcContact('${encodeURIComponent(c.nom)}')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></span></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function editMdcContact(nomEncoded) {
+  const nom = decodeURIComponent(nomEncoded);
+  const c = findMdcContact(nom);
+  if (!c) return;
+  document.getElementById('mdc-edit-nom-original').value = c.nom;
+  document.getElementById('mdc-edit-nom').value = c.nom;
+  document.getElementById('mdc-edit-email').value = c.email || '';
+  openModal('modal-edit-mdc');
+}
+
+function saveMdcContact() {
+  const nomOriginal = document.getElementById('mdc-edit-nom-original').value;
+  const nouveauNom = document.getElementById('mdc-edit-nom').value.trim();
+  const nouvelEmail = document.getElementById('mdc-edit-email').value.trim();
+  if (!nouveauNom) { alert('Le nom est obligatoire.'); return; }
+
+  const ancien = findMdcContact(nomOriginal);
+  const nNom = normalizeMDC(nouveauNom);
+  const nOriginal = normalizeMDC(nomOriginal);
+
+  if (ancien) {
+    ancien.nom = nouveauNom;
+    ancien.email = nouvelEmail;
+  } else {
+    db.mdcCFCContacts.push({nom: nouveauNom, email: nouvelEmail});
+  }
+
+  // Propager à tous les élèves : si le nom a changé, mettre à jour leur mdcCFC, et toujours mettre à jour leur email
+  for (const e of db.eleves) {
+    if (normalizeMDC(e.mdcCFC || '') === nOriginal) {
+      e.mdcCFC = nouveauNom;
+      e.mdcCFCEmail = nouvelEmail;
+    }
+  }
+
+  save();
+  closeModal('modal-edit-mdc');
+  renderAll();
+  toast('MDC CFC mis à jour ✓');
+}
+
+function deleteMdcContact(nomEncoded) {
+  const nom = decodeURIComponent(nomEncoded);
+  const n = normalizeMDC(nom);
+  const nbEleves = db.eleves.filter(e => normalizeMDC(e.mdcCFC || '') === n).length;
+  let msg = `Supprimer le MDC "${nom}" du carnet d'adresses ?`;
+  if (nbEleves > 0) {
+    msg += `\n\n${nbEleves} élève${nbEleves>1?'s':''} avec ce MDC seront aussi mis à jour (MDC + email vidés).`;
+  }
+  if (!confirm(msg)) return;
+  db.mdcCFCContacts = db.mdcCFCContacts.filter(c => normalizeMDC(c.nom) !== n);
+  for (const e of db.eleves) {
+    if (normalizeMDC(e.mdcCFC || '') === n) {
+      e.mdcCFC = '';
+      e.mdcCFCEmail = '';
+    }
+  }
+  save();
+  renderAll();
+  toast('MDC supprimé ✓');
 }
 
 function filtrerParClasse(nom) {
@@ -3010,6 +3224,13 @@ function validerImportMDC() {
   if (!mdcImportData || !mdcImportData.correspondances.length) return;
   for (const c of mdcImportData.correspondances) {
     c.eleve.mdcCFC = c.nouveauMDC;
+    // Récupérer l'email depuis le carnet d'adresses si déjà connu
+    const contact = findMdcContact(c.nouveauMDC);
+    if (contact && contact.email) {
+      c.eleve.mdcCFCEmail = contact.email;
+    }
+    // Ajouter (ou conserver) l'entrée dans le carnet d'adresses
+    upsertMdcContact(c.nouveauMDC, c.eleve.mdcCFCEmail || '');
   }
   save();
   closeModal('modal-mdc-xlsx');
