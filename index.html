@@ -811,6 +811,7 @@
       <div class="form-group"><label>Téléphone</label><input type="tel" id="el-patron-tel" placeholder="+32 470 00 00 00"></div>
       <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 10px">Maître de classe CFC</div>
       <div class="form-group"><label>Nom</label><input id="el-mdc-cfc" placeholder="Ex : FRANCOIS REMY"></div>
+      <div class="form-group"><label>E-mail</label><input type="email" id="el-mdc-cfc-email" placeholder="mdc@exemple.com"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-add-eleve')">Annuler</button>
@@ -1257,7 +1258,7 @@ function openModal(id) {
     document.getElementById('el-edit-id').value = '';
     document.getElementById('modal-eleve-titre-txt').textContent = 'Ajouter un élève';
     document.getElementById('modal-eleve-btn-txt').textContent = 'Ajouter';
-    ['el-prenom','el-nom','el-email','el-tel','el-parents-nom','el-parents-email','el-parents-tel','el-patron-nom','el-patron-email','el-patron-tel','el-mdc-cfc'].forEach(i => { const el=document.getElementById(i); if(el) el.value=''; });
+    ['el-prenom','el-nom','el-email','el-tel','el-parents-nom','el-parents-email','el-parents-tel','el-patron-nom','el-patron-email','el-patron-tel','el-mdc-cfc','el-mdc-cfc-email'].forEach(i => { const el=document.getElementById(i); if(el) el.value=''; });
     populateClasseSelect('');
   }
   document.getElementById(id).classList.add('open');
@@ -1476,15 +1477,16 @@ function saveEleve() {
   const patronEmail  = document.getElementById('el-patron-email').value.trim();
   const patronTel    = document.getElementById('el-patron-tel').value.trim();
   const mdcCFC       = document.getElementById('el-mdc-cfc').value.trim();
+  const mdcCFCEmail  = document.getElementById('el-mdc-cfc-email').value.trim();
   if (!prenom || !nom) { alert('Prénom et nom obligatoires.'); return; }
   if (!classe) { alert('Veuillez choisir une classe.'); return; }
 
   if (editId) {
     const e = db.eleves.find(x=>x.id===editId);
-    if (e) Object.assign(e, {prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC});
+    if (e) Object.assign(e, {prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC, mdcCFCEmail});
     toast('Élève modifié ✓');
   } else {
-    db.eleves.push({id:nextId(db.eleves), prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC});
+    db.eleves.push({id:nextId(db.eleves), prenom, nom, classe, email, tel, parentsNom, parentsEmail, parentsTel, patronNom, patronEmail, patronTel, mdcCFC, mdcCFCEmail});
     toast('Élève ajouté ✓');
   }
   save(); closeModal('modal-add-eleve'); renderAll();
@@ -1506,6 +1508,7 @@ function editEleve(id) {
   document.getElementById('el-patron-email').value = e.patronEmail || '';
   document.getElementById('el-patron-tel').value = e.patronTel || '';
   document.getElementById('el-mdc-cfc').value = e.mdcCFC || '';
+  document.getElementById('el-mdc-cfc-email').value = e.mdcCFCEmail || '';
   populateClasseSelect(e.classe || '');
   document.getElementById('modal-add-eleve').classList.add('open');
 }
@@ -1815,8 +1818,11 @@ function showDetail(id) {
     `<div class="eleve-cell"><div class="avatar" style="${alerte?'background:var(--red-light);color:var(--red-text)':''}">${initials(e)}</div>${e.prenom} ${e.nom} <span class="badge badge-gray" style="margin-left:6px">${e.classe}</span>${alerte?`<span class="badge badge-red" style="margin-left:6px"><span class="ico" aria-hidden="true" style=""><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg></span> ${total} pér.</span>`:''}</div>`;
 
   let html = '';
-  if (e.mdcCFC) {
-    html += `<div style="background:#F3E8FF;border-left:3px solid #7C3AED;padding:8px 12px;border-radius:6px;margin-bottom:14px;font-size:13px"><strong style="color:#5B21B6">MDC CFC :</strong> <span style="color:var(--text)">${e.mdcCFC}</span></div>`;
+  if (e.mdcCFC || e.mdcCFCEmail) {
+    html += `<div style="background:#F3E8FF;border-left:3px solid #7C3AED;padding:8px 12px;border-radius:6px;margin-bottom:14px;font-size:13px">
+      <strong style="color:#5B21B6">MDC CFC :</strong> <span style="color:var(--text)">${e.mdcCFC || '—'}</span>
+      ${e.mdcCFCEmail ? `<div style="margin-top:4px"><span class="ico" aria-hidden="true" style="color:var(--text3);width:13px;display:inline-block"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg></span> <a href="mailto:${e.mdcCFCEmail}" style="color:var(--blue);text-decoration:none">${e.mdcCFCEmail}</a></div>` : ''}
+    </div>`;
   }
   html += `<div class="detail-grid" style="grid-template-columns:repeat(4,1fr)">
     <div class="detail-stat">
