@@ -1,13 +1,14 @@
 // Service Worker pour Ma Classe — fonctionnement hors ligne
-const CACHE = 'ma-classe-v6';
+const CACHE = 'ma-classe-v7';
 
-// URLs externes à pré-cacher (libs PDF pour MEMO)
+// URLs externes à pré-cacher (libs PDF pour MEMO + xlsx pour MDC CFC)
 const PRECACHE = [
   './',
   './index.html',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'
 ];
 
 // À l'installation : mettre en cache la page principale + libs PDF
