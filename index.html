@@ -646,10 +646,14 @@
         <button onclick="document.getElementById('mdc-xlsx-input').click()" title="Importer MDC CFC depuis fichier Excel (Liste élèves MP)" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#7C3AED">
           <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg></span>
         </button>
+        <button onclick="document.getElementById('carnets-pdf-input').click()" title="Importer carnets PDF et envoyer aux MDC CFC" style="width:40px;height:40px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#0891B2">
+          <span class="ico" style="font-size:20px"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM7 4h3v8l-1.5-.9L7 12V4zm11 16H6V4h1v12l3.5-2.1L14 16V4h4v16z"/></svg></span>
+        </button>
         <input type="file" id="memo-pdf-input" accept="application/pdf" style="display:none" onchange="importerMemoPDF(this)">
         <input type="file" id="memo-patron-pdf-input" accept="application/pdf" style="display:none" onchange="importerMemoPatronPDF(this)">
         <input type="file" id="csv-eleves-input" accept=".csv,text/csv" style="display:none" onchange="importerCSVEleves(this)">
         <input type="file" id="mdc-xlsx-input" accept=".xlsx,.xls" style="display:none" onchange="importerMDCXlsx(this)">
+        <input type="file" id="carnets-pdf-input" accept="application/pdf" style="display:none" onchange="importerCarnetsPDF(this)">
         <input type="file" id="import-input" accept=".json" style="display:none" onchange="importData(this)">
       </div>
     </div>
@@ -991,6 +995,25 @@
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-mdc-xlsx')">Annuler</button>
       <button class="btn btn-primary" id="mdc-btn-importer" onclick="validerImportMDC()" style="display:none"><span class="ico"><svg viewBox="0 0 24 24"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg></span> Tout mettre à jour</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CARNETS PDF — envoi aux MDC CFC -->
+<div class="modal-overlay" id="modal-carnets">
+  <div class="modal" style="max-width:720px;max-height:90vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <h3><span class="ico" style="color:#0891B2"><svg viewBox="0 0 24 24"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zM7 4h3v8l-1.5-.9L7 12V4zm11 16H6V4h1v12l3.5-2.1L14 16V4h4v16z"/></svg></span> Envoi des carnets aux MDC CFC</h3>
+      <button class="modal-close" onclick="closeModal('modal-carnets')"><span class="ico"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></span></button>
+    </div>
+    <div class="modal-body" id="carnets-body" style="flex:1;overflow-y:auto">
+      <div id="carnets-loading" style="text-align:center;padding:40px">
+        <div style="font-size:14px;color:var(--text2)">Analyse du PDF en cours...</div>
+      </div>
+      <div id="carnets-content" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-carnets')">Fermer</button>
     </div>
   </div>
 </div>
@@ -2313,9 +2336,11 @@ async function envoyerMemoEleve(eleveIdx, emailIdx) {
 }
 
 // Génère un PDF avec uniquement les pages indiquées du PDF source
-async function genererPDFPourEleve(pages) {
+async function genererPDFPourEleve(pages, pdfBytesOverride) {
   // Réutiliser le PDF source via pdf.js + jsPDF en mode "render canvas"
-  const pdf = await pdfjsLib.getDocument({data: memoData.pdfBytes.slice()}).promise;
+  const sourceBytes = pdfBytesOverride || (memoData && memoData.pdfBytes);
+  if (!sourceBytes) throw new Error('Aucun PDF source disponible');
+  const pdf = await pdfjsLib.getDocument({data: sourceBytes.slice()}).promise;
   const { jsPDF } = window.jspdf;
   let doc = null;
   for (let i = 0; i < pages.length; i++) {
@@ -2567,7 +2592,7 @@ async function envoyerMemoPatronEleve(eleveIdx, emailIdx) {
   if (!pret || !email) return;
   try {
     const pages = pret.groupe.pages.map(p => p.num);
-    const pdfBlob = await genererPDFPourEleve(pages);
+    const pdfBlob = await genererPDFPourEleve(pages, memoPatronData.pdfBytes);
     const filename = `MEMO_Patron_${pret.eleve.nom}_${pret.eleve.prenom}`.replace(/[^A-Za-z0-9_]/g,'_') + '.pdf';
     const url = URL.createObjectURL(pdfBlob);
     const a = document.createElement('a');
@@ -2991,6 +3016,217 @@ function validerImportMDC() {
   renderAll();
   toast(`${mdcImportData.correspondances.length} MDC CFC mis à jour ✓`);
   mdcImportData = null;
+}
+
+/* ========== IMPORT CARNETS PDF ========== */
+let carnetsData = null; // {pdfBytes, eleves: [{nom, page}], groupesMDC: [{mdcNom, mdcEmail, eleves: [{eleve, page}]}]}
+
+async function importerCarnetsPDF(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  document.getElementById('carnets-loading').style.display = 'block';
+  document.getElementById('carnets-content').style.display = 'none';
+  document.getElementById('modal-carnets').classList.add('open');
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfBytes = new Uint8Array(arrayBuffer);
+    const pdf = await pdfjsLib.getDocument({data: pdfBytes.slice()}).promise;
+    const pagesInfo = await analyserCarnetsPDF(pdf);
+    carnetsData = {pdfBytes, pagesInfo};
+    afficherListeCarnets();
+  } catch (e) {
+    document.getElementById('carnets-loading').innerHTML =
+      `<div style="color:var(--red);padding:20px">Erreur lors de la lecture du PDF : ${e.message}</div>`;
+  }
+}
+
+async function analyserCarnetsPDF(pdf) {
+  const pagesInfo = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const nomComplet = extraireNomCarnet(textContent.items);
+    pagesInfo.push({page: i, nomComplet});
+  }
+  return pagesInfo;
+}
+
+// Extraire le nom de l'élève d'une page de carnet
+// Le nom est tout en MAJUSCULES, dans la zone gauche, juste avant "Né le"
+function extraireNomCarnet(items) {
+  const elements = items.filter(it => it.str && it.str.trim()).map(it => ({
+    text: it.str.trim(),
+    x: it.transform[4],
+    y: it.transform[5]
+  }));
+  // Grouper par y arrondi
+  const lignes = [];
+  for (const el of elements) {
+    let ligne = lignes.find(l => Math.abs(l.y - el.y) < 3);
+    if (!ligne) { ligne = {y: el.y, items: []}; lignes.push(ligne); }
+    ligne.items.push(el);
+  }
+  lignes.forEach(l => l.items.sort((a,b) => a.x - b.x));
+  lignes.sort((a,b) => b.y - a.y); // haut → bas en pdf.js
+
+  // Vérifier si un mot est en majuscules (lettres, tirets, apostrophes autorisés)
+  function isMajusculesNom(m) {
+    if (!m || m.length < 2) return false;
+    const clean = m.replace(/[-'’]/g,'');
+    if (!clean) return false;
+    return clean === clean.toUpperCase() && /^[A-ZÀ-ÜA-Z]+$/i.test(clean);
+  }
+
+  for (const ligne of lignes) {
+    // Items en zone gauche (x < 300)
+    const itemsGauche = ligne.items.filter(it => it.x < 300);
+    if (!itemsGauche.length) continue;
+    const texte = itemsGauche.map(i => i.text).join(' ').trim();
+    const mots = texte.split(/\s+/).filter(Boolean);
+    if (mots.length < 2) continue;
+    if (!mots.every(isMajusculesNom)) continue;
+    // Exclure les mots en-tête
+    const blacklist = /^(REPUBLIQUE|DEPARTEMENT|CENTRE|ENSEIGNEMENT|GENEVE|DAVID|RUIZ|PORTAL|BULLETIN|OBSERVATIONS)$/i;
+    if (mots.some(m => blacklist.test(m))) continue;
+    return texte;
+  }
+  return null;
+}
+
+function afficherListeCarnets() {
+  document.getElementById('carnets-loading').style.display = 'none';
+  const div = document.getElementById('carnets-content');
+  div.style.display = 'block';
+
+  const manquants = [];     // dans PDF mais pas dans app
+  const sansMDC = [];       // dans PDF + app, mais sans MDC CFC
+  const sansEmail = [];     // dans PDF + app + MDC CFC, mais sans email MDC
+  const elevesPrets = [];   // tous OK
+
+  for (const p of carnetsData.pagesInfo) {
+    if (!p.nomComplet) continue;
+    // Découper en mots
+    const mots = p.nomComplet.split(/\s+/).filter(Boolean);
+    const prenom = mots[mots.length - 1];
+    const nom = mots.slice(0, -1).join(' ');
+    const eleve = chercherEleveCorrespondant(nom, prenom);
+    if (!eleve) {
+      manquants.push({nomComplet: p.nomComplet, page: p.page});
+      continue;
+    }
+    if (!eleve.mdcCFC || !eleve.mdcCFC.trim()) {
+      sansMDC.push({eleve, page: p.page});
+      continue;
+    }
+    if (!eleve.mdcCFCEmail || !eleve.mdcCFCEmail.trim()) {
+      sansEmail.push({eleve, page: p.page});
+      continue;
+    }
+    elevesPrets.push({eleve, page: p.page});
+  }
+
+  // Regrouper par MDC CFC (clé : mdcCFC normalisé en minuscules pour grouper même casse différente)
+  const groupes = {};
+  for (const item of elevesPrets) {
+    const cleMDC = item.eleve.mdcCFC.trim().toLowerCase();
+    if (!groupes[cleMDC]) {
+      groupes[cleMDC] = {
+        mdcNom: item.eleve.mdcCFC.trim(),
+        mdcEmail: item.eleve.mdcCFCEmail.trim(),
+        eleves: []
+      };
+    }
+    groupes[cleMDC].eleves.push(item);
+  }
+  const groupesArr = Object.values(groupes).sort((a,b) => a.mdcNom.localeCompare(b.mdcNom));
+
+  let html = '';
+
+  // Bandeau orange : élèves manquants
+  if (manquants.length) {
+    html += `<div style="background:#FEF3C7;border:1px solid #FCD34D;color:#78350F;border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:6px">⚠️ ${manquants.length} élève(s) du PDF non trouvé(s) dans l'application :</div>
+      <ul style="margin:4px 0 0 18px;padding:0;font-size:13px">
+        ${manquants.map(m => `<li>${m.nomComplet} (page ${m.page})</li>`).join('')}
+      </ul>
+    </div>`;
+  }
+
+  // Bandeau gris : élèves sans MDC CFC
+  if (sansMDC.length) {
+    html += `<div style="background:var(--bg);border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:6px">${sansMDC.length} élève(s) sans MDC CFC renseigné :</div>
+      <div style="font-size:13px">${sansMDC.map(s => `${s.eleve.prenom} ${s.eleve.nom}`).join(' · ')}</div>
+      <div style="font-size:12px;margin-top:6px;font-style:italic">Complétez le MDC CFC dans la fiche de l'élève pour pouvoir envoyer.</div>
+    </div>`;
+  }
+
+  // Bandeau rouge : élèves avec MDC CFC mais sans email
+  if (sansEmail.length) {
+    html += `<div style="background:#FEE2E2;border:1px solid #FCA5A5;color:#991B1B;border-radius:var(--radius-sm);padding:12px;margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:6px">${sansEmail.length} élève(s) avec MDC CFC mais sans email du MDC :</div>
+      <ul style="margin:4px 0 0 18px;padding:0;font-size:13px">
+        ${sansEmail.map(s => `<li>${s.eleve.prenom} ${s.eleve.nom} — MDC : ${s.eleve.mdcCFC}</li>`).join('')}
+      </ul>
+      <div style="font-size:12px;margin-top:6px;font-style:italic">Ajoutez l'email du MDC CFC dans la fiche de l'élève.</div>
+    </div>`;
+  }
+
+  if (!groupesArr.length) {
+    if (!manquants.length && !sansMDC.length && !sansEmail.length) {
+      html += `<div style="text-align:center;padding:30px;color:var(--text2)">Aucun élève détecté dans le PDF.</div>`;
+    }
+    div.innerHTML = html;
+    return;
+  }
+
+  html += `<div style="font-size:13px;color:var(--text2);margin-bottom:12px"><strong>${groupesArr.length} MDC CFC</strong> à contacter. Chaque envoi génère un PDF combiné contenant les carnets de tous les élèves dont il/elle est responsable.</div>`;
+  html += '<div style="display:flex;flex-direction:column;gap:10px">';
+
+  for (let i = 0; i < groupesArr.length; i++) {
+    const g = groupesArr[i];
+    html += `<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;background:var(--surface)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="flex:1">
+          <div style="font-weight:600;color:#0891B2">${g.mdcNom}</div>
+          <div style="font-size:12px;color:var(--text3)">${g.mdcEmail} · ${g.eleves.length} carnet(s)</div>
+        </div>
+        <button class="btn btn-sm btn-primary" onclick="envoyerCarnetsMDC(${i})">Envoyer</button>
+      </div>
+      <div style="font-size:12px;color:var(--text2);padding-left:2px">
+        ${g.eleves.map(it => `${it.eleve.prenom} ${it.eleve.nom}`).join(' · ')}
+      </div>
+    </div>`;
+  }
+  html += '</div>';
+
+  carnetsData.groupesMDC = groupesArr;
+  div.innerHTML = html;
+}
+
+async function envoyerCarnetsMDC(groupeIdx) {
+  const g = carnetsData.groupesMDC[groupeIdx];
+  if (!g) return;
+  try {
+    const pages = g.eleves.map(it => it.page);
+    const pdfBlob = await genererPDFPourEleve(pages, carnetsData.pdfBytes);
+    // Nom de fichier : MDC + classe
+    const mdcSlug = g.mdcNom.replace(/[^A-Za-z0-9_]/g,'_');
+    const filename = `Carnets_MDC_${mdcSlug}.pdf`;
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+    const sujet = 'Carnets des élèves';
+    const corps = `Bonjour,\n\nCi-joint le(s) carnet(s) matu des élèves de ta classe CFC.\n\nCordialement,\nDavid Ruiz del Portal`;
+    const mailto = `mailto:${encodeURIComponent(g.mdcEmail)}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(corps)}`;
+    window.location.href = mailto;
+  } catch (e) {
+    alert('Erreur lors de la génération du PDF : ' + e.message);
+  }
 }
 
 function quickAbsence(id) {
