@@ -1145,7 +1145,7 @@ function ico(name, style='') {
   const path = ICONS[name] || '<path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>';
   return `<span class="ico" aria-hidden="true" style="${style}"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">${path}</svg></span>`;
 }
-let db = { classes:[], eleves:[], absences:[], retenues:[], documents:[] };
+let db = { classes:[], eleves:[], absences:[], retenues:[], documents:[], mdcCFCContacts:[] };
 let absFilter = 'tous';
 let retFilter = 'tous';
 let currentEleveId = null;
@@ -1658,6 +1658,7 @@ function normalizeMDC(s) {
 // Trouve une entrée du carnet d'adresses correspondant à ce nom
 function findMdcContact(nom) {
   if (!nom) return null;
+  if (!db.mdcCFCContacts) db.mdcCFCContacts = [];
   const n = normalizeMDC(nom);
   return db.mdcCFCContacts.find(c => normalizeMDC(c.nom) === n) || null;
 }
@@ -1684,6 +1685,7 @@ function rebuildMdcContacts() {
 // Si l'email change, propage à tous les élèves ayant ce MDC
 function upsertMdcContact(nom, email) {
   if (!nom || !nom.trim()) return;
+  if (!db.mdcCFCContacts) db.mdcCFCContacts = [];
   nom = nom.trim();
   email = (email || '').trim();
   let entry = findMdcContact(nom);
@@ -3222,20 +3224,29 @@ function afficherListeMDC() {
 
 function validerImportMDC() {
   if (!mdcImportData || !mdcImportData.correspondances.length) return;
+  if (!db.mdcCFCContacts) db.mdcCFCContacts = [];
+  let nbOK = 0, nbErr = 0;
   for (const c of mdcImportData.correspondances) {
-    c.eleve.mdcCFC = c.nouveauMDC;
-    // Récupérer l'email depuis le carnet d'adresses si déjà connu
-    const contact = findMdcContact(c.nouveauMDC);
-    if (contact && contact.email) {
-      c.eleve.mdcCFCEmail = contact.email;
+    try {
+      c.eleve.mdcCFC = c.nouveauMDC;
+      // Récupérer l'email depuis le carnet d'adresses si déjà connu
+      const contact = findMdcContact(c.nouveauMDC);
+      if (contact && contact.email) {
+        c.eleve.mdcCFCEmail = contact.email;
+      }
+      // Ajouter (ou conserver) l'entrée dans le carnet d'adresses
+      upsertMdcContact(c.nouveauMDC, c.eleve.mdcCFCEmail || '');
+      nbOK++;
+    } catch (err) {
+      console.error('Erreur MDC pour', c.eleve.prenom, c.eleve.nom, err);
+      nbErr++;
     }
-    // Ajouter (ou conserver) l'entrée dans le carnet d'adresses
-    upsertMdcContact(c.nouveauMDC, c.eleve.mdcCFCEmail || '');
   }
   save();
   closeModal('modal-mdc-xlsx');
   renderAll();
-  toast(`${mdcImportData.correspondances.length} MDC CFC mis à jour ✓`);
+  if (nbErr) toast(`${nbOK} mis à jour, ${nbErr} erreurs (voir console)`);
+  else toast(`${nbOK} MDC CFC mis à jour ✓`);
   mdcImportData = null;
 }
 
